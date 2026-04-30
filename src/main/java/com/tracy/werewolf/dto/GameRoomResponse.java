@@ -1,0 +1,6 @@
+package com.tracy.werewolf.dto;
+import com.tracy.werewolf.model.*; import java.util.*;
+public class GameRoomResponse { private String roomCode; private int playerCount; private String boardId; private boolean customMode; private Map<Role,Integer> customRoles; private GamePhase phase; private int round; private String hostPlayerId; private List<PlayerResponse> players;
+ public GameRoomResponse(GameRoom room){this.roomCode=room.getRoomCode();this.playerCount=room.getPlayerCount();this.boardId=room.getBoardId();this.customMode=room.isCustomMode();this.customRoles=room.getCustomRoles();this.phase=room.getPhase();this.round=room.getRound();this.hostPlayerId=room.getHostPlayerId();this.players=room.getPlayers().stream().map(p->new PlayerResponse(p.getId(),p.getName(),p.isAlive(),p.getSeatNumber(),p.isHost())).toList();}
+ public String getRoomCode(){return roomCode;} public int getPlayerCount(){return playerCount;} public String getBoardId(){return boardId;} public boolean isCustomMode(){return customMode;} public Map<Role,Integer> getCustomRoles(){return customRoles;} public GamePhase getPhase(){return phase;} public int getRound(){return round;} public String getHostPlayerId(){return hostPlayerId;} public List<PlayerResponse> getPlayers(){return players;}
+}

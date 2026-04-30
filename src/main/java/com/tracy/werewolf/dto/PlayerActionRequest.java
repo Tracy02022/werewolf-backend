@@ -1,7 +1,1 @@
-package com.tracy.werewolf.dto;
-
-public class PlayerActionRequest {
-    private String playerId;
-    public String getPlayerId() { return playerId; }
-    public void setPlayerId(String playerId) { this.playerId = playerId; }
-}
+package com.tracy.werewolf.dto; public class PlayerActionRequest { private String playerId; public String getPlayerId(){return playerId;} public void setPlayerId(String playerId){this.playerId=playerId;} }

@@ -1,46 +1,12 @@
 package com.tracy.werewolf.controller;
-
-import com.tracy.werewolf.dto.CreateRoomRequest;
-import com.tracy.werewolf.dto.JoinRoomRequest;
-import com.tracy.werewolf.dto.PlayerActionRequest;
-import com.tracy.werewolf.model.GameRoom;
-import com.tracy.werewolf.model.Player;
-import com.tracy.werewolf.service.GameRoomService;
-import org.springframework.web.bind.annotation.*;
-
-@RestController
-@RequestMapping("/api/rooms")
-@CrossOrigin(origins = "*")
-public class GameRoomController {
-    private final GameRoomService gameRoomService;
-    public GameRoomController(GameRoomService gameRoomService) { this.gameRoomService = gameRoomService; }
-
-    @PostMapping
-    public GameRoom createRoom(@RequestBody CreateRoomRequest request) { return gameRoomService.createRoom(request); }
-
-    @PostMapping("/{roomCode}/join")
-    public GameRoom joinRoom(@PathVariable String roomCode, @RequestBody JoinRoomRequest request) {
-        return gameRoomService.joinRoom(roomCode, request.getPlayerName());
-    }
-
-    @PostMapping("/{roomCode}/fill-bots")
-    public GameRoom fillBots(@PathVariable String roomCode) { return gameRoomService.fillBots(roomCode); }
-
-    @GetMapping("/{roomCode}")
-    public GameRoom getRoom(@PathVariable String roomCode) { return gameRoomService.getRoom(roomCode); }
-
-    @PostMapping("/{roomCode}/start")
-    public GameRoom startGame(@PathVariable String roomCode, @RequestBody PlayerActionRequest request) {
-        return gameRoomService.startGame(roomCode, request.getPlayerId());
-    }
-
-    @PostMapping("/{roomCode}/next-phase")
-    public GameRoom nextPhase(@PathVariable String roomCode, @RequestBody PlayerActionRequest request) {
-        return gameRoomService.nextPhase(roomCode, request.getPlayerId());
-    }
-
-    @GetMapping("/{roomCode}/players/{playerId}/role")
-    public Player getMyRole(@PathVariable String roomCode, @PathVariable String playerId) {
-        return gameRoomService.getPlayerRole(roomCode, playerId);
-    }
+import com.tracy.werewolf.dto.*; import com.tracy.werewolf.service.GameRoomService; import org.springframework.web.bind.annotation.*;
+@RestController @RequestMapping("/api/rooms") @CrossOrigin(origins="*")
+public class GameRoomController { private final GameRoomService service; public GameRoomController(GameRoomService service){this.service=service;}
+ @PostMapping public GameRoomResponse createRoom(@RequestBody CreateRoomRequest req){return new GameRoomResponse(service.createRoom(req));}
+ @PostMapping("/{roomCode}/join") public GameRoomResponse joinRoom(@PathVariable String roomCode,@RequestBody JoinRoomRequest req){return new GameRoomResponse(service.joinRoom(roomCode, req.getPlayerName()));}
+ @PostMapping("/{roomCode}/fill-bots") public GameRoomResponse fillBots(@PathVariable String roomCode){return new GameRoomResponse(service.fillBots(roomCode));}
+ @GetMapping("/{roomCode}") public GameRoomResponse getRoom(@PathVariable String roomCode){return new GameRoomResponse(service.getRoom(roomCode));}
+ @PostMapping("/{roomCode}/start") public GameRoomResponse start(@PathVariable String roomCode,@RequestBody PlayerActionRequest req){return new GameRoomResponse(service.startGame(roomCode, req.getPlayerId()));}
+ @PostMapping("/{roomCode}/next-phase") public GameRoomResponse next(@PathVariable String roomCode,@RequestBody PlayerActionRequest req){return new GameRoomResponse(service.nextPhase(roomCode, req.getPlayerId()));}
+ @GetMapping("/{roomCode}/players/{playerId}/role") public RoleResponse role(@PathVariable String roomCode,@PathVariable String playerId){return new RoleResponse(service.getPlayerRole(roomCode, playerId));}
 }

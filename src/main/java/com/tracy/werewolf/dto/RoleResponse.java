@@ -1,0 +1,1 @@
+package com.tracy.werewolf.dto; import com.tracy.werewolf.model.Role; public class RoleResponse { private Role role; public RoleResponse(Role role){this.role=role;} public Role getRole(){return role;} }
