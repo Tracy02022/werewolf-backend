@@ -1,6 +1,7 @@
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/WerewolfApplication.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/controller/BoardController.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/controller/GameRoomController.java
+/Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/controller/RoleController.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/dto/CreateRoomRequest.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/dto/GameRoomResponse.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/dto/JoinRoomRequest.java
@@ -11,6 +12,8 @@
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/model/GamePhase.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/model/GameRoom.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/model/Player.java
-/Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/model/Role.java
+/Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/model/RoleInfo.java
+/Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/model/RoleTeam.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/service/BoardService.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/service/GameRoomService.java
+/Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/service/RoleCatalogService.java
