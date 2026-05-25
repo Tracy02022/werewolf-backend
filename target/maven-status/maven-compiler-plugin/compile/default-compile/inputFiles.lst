@@ -1,10 +1,14 @@
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/WerewolfApplication.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/controller/BoardController.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/controller/GameRoomController.java
+/Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/controller/GlobalExceptionHandler.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/controller/RoleController.java
+/Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/controller/RulesController.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/dto/CreateRoomRequest.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/dto/GameRoomResponse.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/dto/JoinRoomRequest.java
+/Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/dto/JudgeRuleResponse.java
+/Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/dto/MoveSeatRequest.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/dto/PlayerActionRequest.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/dto/PlayerResponse.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/dto/RoleResponse.java
