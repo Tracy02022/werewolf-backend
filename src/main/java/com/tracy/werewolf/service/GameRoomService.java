@@ -174,11 +174,8 @@ public class GameRoomService {
         }
 
         Player target = findAlivePlayerBySeat(room, targetSeatNumber);
-        if (roleCatalogService.isWolfRole(target.getRole())) {
-            throw new IllegalStateException("Wolf team cannot choose a wolf teammate as the kill target");
-        }
 
-        // 标准狼人杀：不管哪个狼人点击，只有第一个狼人的点击生效。
+        // 标准狼人杀：不管哪个狼人点击，只有第一个狼人的点击生效。允许狼队自刀/空刀以外的任意存活座位点击。
         if (room.getWolfKillTargetSeatNumber() == null) {
             room.setWolfKillTargetSeatNumber(targetSeatNumber);
             room.setWolfKillActorPlayerId(playerId);
@@ -242,6 +239,7 @@ public class GameRoomService {
         if (room == null) {
             throw new IllegalArgumentException("Room not found");
         }
+        autoAdvanceExpiredNightActions(room);
         return room;
     }
 
@@ -353,6 +351,18 @@ public class GameRoomService {
             room.setNightDeathMessage("昨夜是平安夜，没有玩家倒牌。");
         } else {
             room.setNightDeathMessage("昨夜倒牌玩家：" + joinSeatNumbers(actualDeaths) + "号。");
+        }
+    }
+
+    private void autoAdvanceExpiredNightActions(GameRoom room) {
+        // 后端兜底自动推进夜间流程：只要前端轮询 getRoom，计时到点就自动进入下一夜间操作。
+        // 这样不依赖法官手机/浏览器的 setInterval 是否还在运行。
+        while (room.getPhase() == GamePhase.NIGHT
+                && room.getCurrentNightAction() != NightAction.NONE
+                && room.getCurrentNightAction() != NightAction.FINISHED
+                && room.getNightActionEndsAtEpochMs() > 0
+                && System.currentTimeMillis() >= room.getNightActionEndsAtEpochMs()) {
+            advanceToNextNightAction(room);
         }
     }
 
