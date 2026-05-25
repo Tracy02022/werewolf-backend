@@ -1,5 +1,7 @@
 package com.tracy.werewolf.model;
+
 import java.util.*;
+
 public class GameRoom {
     private String roomCode;
     private int playerCount;
@@ -10,8 +12,21 @@ public class GameRoom {
     private int round = 0;
     private String hostPlayerId;
     private List<Player> players = new ArrayList<>();
+
+    private NightAction currentNightAction = NightAction.NONE;
+    private long nightActionEndsAtEpochMs;
+
     private Integer wolfKillTargetSeatNumber;
     private String wolfKillActorPlayerId;
+    private boolean witchSavedWolfKill;
+    private Integer witchPoisonTargetSeatNumber;
+    private List<Integer> nightDeathSeatNumbers = new ArrayList<>();
+    private String nightDeathMessage = "";
+    private List<Integer> hunterCanShootSeatNumbers = new ArrayList<>();
+
+    private Integer mechanicalWolfLearnedSeatNumber;
+    private String mechanicalWolfLearnedRole;
+    private String mechanicalWolfLearnedRoleName;
 
     public String getRoomCode() { return roomCode; }
     public void setRoomCode(String roomCode) { this.roomCode = roomCode; }
@@ -31,8 +46,31 @@ public class GameRoom {
     public void setHostPlayerId(String hostPlayerId) { this.hostPlayerId = hostPlayerId; }
     public List<Player> getPlayers() { return players; }
     public void setPlayers(List<Player> players) { this.players = players; }
+
+    public NightAction getCurrentNightAction() { return currentNightAction; }
+    public void setCurrentNightAction(NightAction currentNightAction) { this.currentNightAction = currentNightAction; }
+    public long getNightActionEndsAtEpochMs() { return nightActionEndsAtEpochMs; }
+    public void setNightActionEndsAtEpochMs(long nightActionEndsAtEpochMs) { this.nightActionEndsAtEpochMs = nightActionEndsAtEpochMs; }
+
     public Integer getWolfKillTargetSeatNumber() { return wolfKillTargetSeatNumber; }
     public void setWolfKillTargetSeatNumber(Integer wolfKillTargetSeatNumber) { this.wolfKillTargetSeatNumber = wolfKillTargetSeatNumber; }
     public String getWolfKillActorPlayerId() { return wolfKillActorPlayerId; }
     public void setWolfKillActorPlayerId(String wolfKillActorPlayerId) { this.wolfKillActorPlayerId = wolfKillActorPlayerId; }
+    public boolean isWitchSavedWolfKill() { return witchSavedWolfKill; }
+    public void setWitchSavedWolfKill(boolean witchSavedWolfKill) { this.witchSavedWolfKill = witchSavedWolfKill; }
+    public Integer getWitchPoisonTargetSeatNumber() { return witchPoisonTargetSeatNumber; }
+    public void setWitchPoisonTargetSeatNumber(Integer witchPoisonTargetSeatNumber) { this.witchPoisonTargetSeatNumber = witchPoisonTargetSeatNumber; }
+    public List<Integer> getNightDeathSeatNumbers() { return nightDeathSeatNumbers; }
+    public void setNightDeathSeatNumbers(List<Integer> nightDeathSeatNumbers) { this.nightDeathSeatNumbers = nightDeathSeatNumbers; }
+    public String getNightDeathMessage() { return nightDeathMessage; }
+    public void setNightDeathMessage(String nightDeathMessage) { this.nightDeathMessage = nightDeathMessage; }
+    public List<Integer> getHunterCanShootSeatNumbers() { return hunterCanShootSeatNumbers; }
+    public void setHunterCanShootSeatNumbers(List<Integer> hunterCanShootSeatNumbers) { this.hunterCanShootSeatNumbers = hunterCanShootSeatNumbers; }
+
+    public Integer getMechanicalWolfLearnedSeatNumber() { return mechanicalWolfLearnedSeatNumber; }
+    public void setMechanicalWolfLearnedSeatNumber(Integer mechanicalWolfLearnedSeatNumber) { this.mechanicalWolfLearnedSeatNumber = mechanicalWolfLearnedSeatNumber; }
+    public String getMechanicalWolfLearnedRole() { return mechanicalWolfLearnedRole; }
+    public void setMechanicalWolfLearnedRole(String mechanicalWolfLearnedRole) { this.mechanicalWolfLearnedRole = mechanicalWolfLearnedRole; }
+    public String getMechanicalWolfLearnedRoleName() { return mechanicalWolfLearnedRoleName; }
+    public void setMechanicalWolfLearnedRoleName(String mechanicalWolfLearnedRoleName) { this.mechanicalWolfLearnedRoleName = mechanicalWolfLearnedRoleName; }
 }

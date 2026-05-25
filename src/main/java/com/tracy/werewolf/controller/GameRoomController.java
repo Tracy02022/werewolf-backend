@@ -1,4 +1,5 @@
 package com.tracy.werewolf.controller;
+
 import com.tracy.werewolf.dto.*;
 import com.tracy.werewolf.service.GameRoomService;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +32,30 @@ public class GameRoomController {
     @PostMapping("/{roomCode}/wolf-kill")
     public GameRoomResponse wolfKill(@PathVariable String roomCode, @RequestBody NightKillRequest request) {
         return new GameRoomResponse(service.wolfKill(roomCode, request.getPlayerId(), request.getTargetSeatNumber()));
+    }
+
+    @PostMapping("/{roomCode}/witch-action")
+    public GameRoomResponse witchAction(@PathVariable String roomCode, @RequestBody WitchActionRequest request) {
+        return new GameRoomResponse(service.witchAction(
+                roomCode,
+                request.getPlayerId(),
+                request.isUseSave(),
+                request.getPoisonTargetSeatNumber()
+        ));
+    }
+
+    @PostMapping("/{roomCode}/mechanical-wolf-learn")
+    public GameRoomResponse mechanicalWolfLearn(@PathVariable String roomCode, @RequestBody MechanicalWolfLearnRequest request) {
+        return new GameRoomResponse(service.mechanicalWolfLearn(
+                roomCode,
+                request.getPlayerId(),
+                request.getTargetSeatNumber()
+        ));
+    }
+
+    @PostMapping("/{roomCode}/advance-night-action")
+    public GameRoomResponse advanceNightAction(@PathVariable String roomCode, @RequestBody AdvanceNightActionRequest request) {
+        return new GameRoomResponse(service.advanceNightAction(roomCode, request.getPlayerId()));
     }
 
     @PostMapping("/{roomCode}/fill-bots")

@@ -1,11 +1,17 @@
 package com.tracy.werewolf.service;
+
 import com.tracy.werewolf.dto.CreateRoomRequest;
 import com.tracy.werewolf.model.*;
 import org.springframework.stereotype.Service;
+
 import java.util.*;
 
 @Service
 public class GameRoomService {
+    private static final long FIRST_NIGHT_WOLF_SECONDS = 90;
+    private static final long NORMAL_NIGHT_WOLF_SECONDS = 60;
+    private static final long OTHER_NIGHT_ACTION_SECONDS = 45;
+
     private final Map<String, GameRoom> rooms = new HashMap<>();
     private final Random random = new Random();
     private final BoardService boardService;
@@ -30,6 +36,7 @@ public class GameRoomService {
         room.setPlayerCount(playerCount);
         room.setPhase(GamePhase.WAITING);
         room.setRound(0);
+        room.setCurrentNightAction(NightAction.NONE);
 
         if (request.isCustomMode()) {
             validateCustomRoles(request.getCustomRoles(), playerCount);
@@ -89,6 +96,9 @@ public class GameRoomService {
 
     public GameRoom moveSeat(String roomCode, String playerId, Integer seatNumber) {
         GameRoom room = getRoom(roomCode);
+        if (room.getPhase() != GamePhase.WAITING) {
+            throw new IllegalStateException("Only waiting players can change seats");
+        }
         Player player = findPlayer(room, playerId);
         int selectedSeatNumber = requireSeatNumber(seatNumber);
         validateSeatAvailable(room, selectedSeatNumber, playerId);
@@ -109,9 +119,8 @@ public class GameRoomService {
         assignRoles(room);
         room.setPhase(GamePhase.NIGHT);
         room.setRound(1);
-        room.setWolfKillTargetSeatNumber(null);
-        room.setWolfKillActorPlayerId(null);
-        return room;
+        beginNight(room);
+        return sortPlayers(room);
     }
 
     public GameRoom nextPhase(String roomCode, String playerId) {
@@ -120,28 +129,37 @@ public class GameRoomService {
 
         switch (room.getPhase()) {
             case WAITING -> throw new IllegalStateException("Game has not started");
-            case NIGHT -> room.setPhase(GamePhase.DAY_DISCUSSION);
+            case NIGHT -> finishNightAndEnterDay(room);
             case DAY_DISCUSSION -> room.setPhase(GamePhase.VOTING);
             case VOTING -> {
                 if (isGameOver(room)) {
                     room.setPhase(GamePhase.FINISHED);
+                    room.setCurrentNightAction(NightAction.NONE);
                 } else {
                     room.setPhase(GamePhase.NIGHT);
                     room.setRound(room.getRound() + 1);
-                    room.setWolfKillTargetSeatNumber(null);
-                    room.setWolfKillActorPlayerId(null);
+                    beginNight(room);
                 }
             }
             case FINISHED -> throw new IllegalStateException("Game already finished");
         }
-        return room;
+        return sortPlayers(room);
     }
 
+    public GameRoom advanceNightAction(String roomCode, String playerId) {
+        GameRoom room = getRoom(roomCode);
+        requireHost(room, playerId, "Only host can control night actions");
+        if (room.getPhase() != GamePhase.NIGHT) {
+            throw new IllegalStateException("Night action is only available at night");
+        }
+        advanceToNextNightAction(room);
+        return sortPlayers(room);
+    }
 
     public GameRoom wolfKill(String roomCode, String playerId, Integer targetSeatNumber) {
         GameRoom room = getRoom(roomCode);
-        if (room.getPhase() != GamePhase.NIGHT) {
-            throw new IllegalStateException("Wolf action is only available at night");
+        if (room.getPhase() != GamePhase.NIGHT || room.getCurrentNightAction() != NightAction.WOLF_KILL) {
+            throw new IllegalStateException("Wolf action is not available now");
         }
 
         Player actor = findPlayer(room, playerId);
@@ -155,18 +173,67 @@ public class GameRoomService {
             throw new IllegalArgumentException("Target seat number is required");
         }
 
-        Player target = room.getPlayers().stream()
-                .filter(player -> player.getSeatNumber() == targetSeatNumber)
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Target seat is empty"));
-
-        if (!target.isAlive()) {
-            throw new IllegalStateException("Target player is already dead");
+        Player target = findAlivePlayerBySeat(room, targetSeatNumber);
+        if (roleCatalogService.isWolfRole(target.getRole())) {
+            throw new IllegalStateException("Wolf team cannot choose a wolf teammate as the kill target");
         }
 
-        room.setWolfKillTargetSeatNumber(targetSeatNumber);
-        room.setWolfKillActorPlayerId(playerId);
-        target.setAlive(false);
+        // 标准狼人杀：不管哪个狼人点击，只有第一个狼人的点击生效。
+        if (room.getWolfKillTargetSeatNumber() == null) {
+            room.setWolfKillTargetSeatNumber(targetSeatNumber);
+            room.setWolfKillActorPlayerId(playerId);
+            advanceToNextNightAction(room);
+        }
+        return sortPlayers(room);
+    }
+
+    public GameRoom witchAction(String roomCode, String playerId, boolean useSave, Integer poisonTargetSeatNumber) {
+        GameRoom room = getRoom(roomCode);
+        if (room.getPhase() != GamePhase.NIGHT || room.getCurrentNightAction() != NightAction.WITCH) {
+            throw new IllegalStateException("Witch action is not available now");
+        }
+
+        Player witch = findPlayer(room, playerId);
+        if (!witch.isAlive() || !"WITCH".equals(witch.getRole())) {
+            throw new IllegalStateException("Only alive witch can act now");
+        }
+
+        if (useSave && room.getWolfKillTargetSeatNumber() != null) {
+            if (witch.getSeatNumber() == room.getWolfKillTargetSeatNumber()) {
+                throw new IllegalStateException("女巫中刀不能自救");
+            }
+            room.setWitchSavedWolfKill(true);
+        }
+
+        if (poisonTargetSeatNumber != null) {
+            Player poisonTarget = findAlivePlayerBySeat(room, poisonTargetSeatNumber);
+            room.setWitchPoisonTargetSeatNumber(poisonTarget.getSeatNumber());
+        }
+
+        advanceToNextNightAction(room);
+        return sortPlayers(room);
+    }
+
+    public GameRoom mechanicalWolfLearn(String roomCode, String playerId, Integer targetSeatNumber) {
+        GameRoom room = getRoom(roomCode);
+        if (room.getPhase() != GamePhase.NIGHT || room.getCurrentNightAction() != NightAction.MECHANICAL_WOLF) {
+            throw new IllegalStateException("Mechanical wolf action is not available now");
+        }
+
+        Player actor = findPlayer(room, playerId);
+        if (!actor.isAlive() || !"MECHANICAL_WOLF".equals(actor.getRole())) {
+            throw new IllegalStateException("Only alive mechanical wolf can learn now");
+        }
+        if (targetSeatNumber == null) {
+            throw new IllegalArgumentException("Target seat number is required");
+        }
+
+        Player target = findAlivePlayerBySeat(room, targetSeatNumber);
+        RoleInfo learned = roleCatalogService.getRole(target.getRole());
+        room.setMechanicalWolfLearnedSeatNumber(target.getSeatNumber());
+        room.setMechanicalWolfLearnedRole(target.getRole());
+        room.setMechanicalWolfLearnedRoleName(learned.getName());
+        advanceToNextNightAction(room);
         return sortPlayers(room);
     }
 
@@ -194,6 +261,113 @@ public class GameRoomService {
         return roleCatalogService.getRole(role);
     }
 
+    private void beginNight(GameRoom room) {
+        room.setWolfKillTargetSeatNumber(null);
+        room.setWolfKillActorPlayerId(null);
+        room.setWitchSavedWolfKill(false);
+        room.setWitchPoisonTargetSeatNumber(null);
+        room.setNightDeathSeatNumbers(new ArrayList<>());
+        room.setNightDeathMessage("");
+        room.setHunterCanShootSeatNumbers(new ArrayList<>());
+        room.setMechanicalWolfLearnedSeatNumber(null);
+        room.setMechanicalWolfLearnedRole(null);
+        room.setMechanicalWolfLearnedRoleName(null);
+        room.setCurrentNightAction(NightAction.WOLF_KILL);
+        long seconds = room.getRound() <= 1 ? FIRST_NIGHT_WOLF_SECONDS : NORMAL_NIGHT_WOLF_SECONDS;
+        setNightActionTimer(room, seconds);
+    }
+
+    private void advanceToNextNightAction(GameRoom room) {
+        NightAction current = room.getCurrentNightAction();
+        if (current == NightAction.WOLF_KILL) {
+            if (hasAliveRole(room, "WITCH")) {
+                room.setCurrentNightAction(NightAction.WITCH);
+                setNightActionTimer(room, OTHER_NIGHT_ACTION_SECONDS);
+                return;
+            }
+            current = NightAction.WITCH;
+        }
+        if (current == NightAction.WITCH) {
+            if (hasAliveRole(room, "SEER")) {
+                room.setCurrentNightAction(NightAction.SEER);
+                setNightActionTimer(room, OTHER_NIGHT_ACTION_SECONDS);
+                return;
+            }
+            current = NightAction.SEER;
+        }
+        if (current == NightAction.SEER) {
+            if (hasAliveRole(room, "MECHANICAL_WOLF")) {
+                room.setCurrentNightAction(NightAction.MECHANICAL_WOLF);
+                setNightActionTimer(room, OTHER_NIGHT_ACTION_SECONDS);
+                return;
+            }
+            current = NightAction.MECHANICAL_WOLF;
+        }
+        if (current == NightAction.MECHANICAL_WOLF) {
+            if (hasAliveRole(room, "HUNTER")) {
+                room.setCurrentNightAction(NightAction.HUNTER_CHECK);
+                setNightActionTimer(room, 20);
+                return;
+            }
+        }
+        finishNightAndEnterDay(room);
+    }
+
+    private void finishNightAndEnterDay(GameRoom room) {
+        resolveNightDeaths(room);
+        room.setPhase(GamePhase.DAY_DISCUSSION);
+        room.setCurrentNightAction(NightAction.FINISHED);
+        room.setNightActionEndsAtEpochMs(0);
+    }
+
+    private void resolveNightDeaths(GameRoom room) {
+        Set<Integer> deaths = new LinkedHashSet<>();
+        Set<Integer> poisonDeaths = new LinkedHashSet<>();
+
+        if (room.getWolfKillTargetSeatNumber() != null && !room.isWitchSavedWolfKill()) {
+            deaths.add(room.getWolfKillTargetSeatNumber());
+        }
+        if (room.getWitchPoisonTargetSeatNumber() != null) {
+            deaths.add(room.getWitchPoisonTargetSeatNumber());
+            poisonDeaths.add(room.getWitchPoisonTargetSeatNumber());
+        }
+
+        List<Integer> actualDeaths = new ArrayList<>();
+        List<Integer> hunterShootSeats = new ArrayList<>();
+        for (Integer seat : deaths) {
+            Optional<Player> playerOpt = room.getPlayers().stream()
+                    .filter(p -> p.getSeatNumber() == seat && p.isAlive())
+                    .findFirst();
+            if (playerOpt.isEmpty()) continue;
+            Player player = playerOpt.get();
+            player.setAlive(false);
+            actualDeaths.add(seat);
+            if ("HUNTER".equals(player.getRole()) && !poisonDeaths.contains(seat)) {
+                hunterShootSeats.add(seat);
+            }
+        }
+
+        room.setNightDeathSeatNumbers(actualDeaths);
+        room.setHunterCanShootSeatNumbers(hunterShootSeats);
+        if (actualDeaths.isEmpty()) {
+            room.setNightDeathMessage("昨夜是平安夜，没有玩家倒牌。");
+        } else {
+            room.setNightDeathMessage("昨夜倒牌玩家：" + joinSeatNumbers(actualDeaths) + "号。");
+        }
+    }
+
+    private void setNightActionTimer(GameRoom room, long seconds) {
+        room.setNightActionEndsAtEpochMs(System.currentTimeMillis() + seconds * 1000);
+    }
+
+    private boolean hasAliveRole(GameRoom room, String role) {
+        return room.getPlayers().stream().anyMatch(p -> p.isAlive() && role.equals(p.getRole()));
+    }
+
+    private String joinSeatNumbers(List<Integer> seats) {
+        return seats.stream().map(String::valueOf).reduce((a, b) -> a + "、" + b).orElse("");
+    }
+
     private void assignRoles(GameRoom room) {
         List<String> pool = buildRolePool(room);
         Collections.shuffle(pool);
@@ -201,6 +375,7 @@ public class GameRoomService {
         sortPlayers(room);
         for (int i = 0; i < room.getPlayers().size(); i++) {
             room.getPlayers().get(i).setRole(pool.get(i));
+            room.getPlayers().get(i).setAlive(true);
         }
     }
 
@@ -290,6 +465,14 @@ public class GameRoomService {
                 .filter(player -> Objects.equals(player.getId(), playerId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Player not found"));
+    }
+
+    private Player findAlivePlayerBySeat(GameRoom room, int seatNumber) {
+        return room.getPlayers().stream()
+                .filter(player -> player.getSeatNumber() == seatNumber)
+                .findFirst()
+                .filter(Player::isAlive)
+                .orElseThrow(() -> new IllegalArgumentException("Target seat is empty or player is already dead"));
     }
 
     private int requireSeatNumber(Integer seatNumber) {
