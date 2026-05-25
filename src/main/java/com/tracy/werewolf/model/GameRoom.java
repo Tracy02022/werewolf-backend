@@ -20,6 +20,8 @@ public class GameRoom {
     private String wolfKillActorPlayerId;
     private boolean witchSavedWolfKill;
     private Integer witchPoisonTargetSeatNumber;
+    private boolean witchSaveUsed;
+    private boolean witchPoisonUsed;
     private List<Integer> nightDeathSeatNumbers = new ArrayList<>();
     private String nightDeathMessage = "";
     private boolean firstDayNightReportReleased = false;
@@ -27,6 +29,8 @@ public class GameRoom {
 
     private Integer seerCheckedSeatNumber;
     private String seerCheckedTeam;
+    private String seerCheckedRole;
+    private String seerCheckedRoleName;
 
     private Integer mechanicalWolfLearnedSeatNumber;
     private String mechanicalWolfLearnedRole;
@@ -64,6 +68,10 @@ public class GameRoom {
     public void setWitchSavedWolfKill(boolean witchSavedWolfKill) { this.witchSavedWolfKill = witchSavedWolfKill; }
     public Integer getWitchPoisonTargetSeatNumber() { return witchPoisonTargetSeatNumber; }
     public void setWitchPoisonTargetSeatNumber(Integer witchPoisonTargetSeatNumber) { this.witchPoisonTargetSeatNumber = witchPoisonTargetSeatNumber; }
+    public boolean isWitchSaveUsed() { return witchSaveUsed; }
+    public void setWitchSaveUsed(boolean witchSaveUsed) { this.witchSaveUsed = witchSaveUsed; }
+    public boolean isWitchPoisonUsed() { return witchPoisonUsed; }
+    public void setWitchPoisonUsed(boolean witchPoisonUsed) { this.witchPoisonUsed = witchPoisonUsed; }
     public List<Integer> getNightDeathSeatNumbers() { return nightDeathSeatNumbers; }
     public void setNightDeathSeatNumbers(List<Integer> nightDeathSeatNumbers) { this.nightDeathSeatNumbers = nightDeathSeatNumbers; }
     public String getNightDeathMessage() { return nightDeathMessage; }
@@ -77,6 +85,10 @@ public class GameRoom {
     public void setSeerCheckedSeatNumber(Integer seerCheckedSeatNumber) { this.seerCheckedSeatNumber = seerCheckedSeatNumber; }
     public String getSeerCheckedTeam() { return seerCheckedTeam; }
     public void setSeerCheckedTeam(String seerCheckedTeam) { this.seerCheckedTeam = seerCheckedTeam; }
+    public String getSeerCheckedRole() { return seerCheckedRole; }
+    public void setSeerCheckedRole(String seerCheckedRole) { this.seerCheckedRole = seerCheckedRole; }
+    public String getSeerCheckedRoleName() { return seerCheckedRoleName; }
+    public void setSeerCheckedRoleName(String seerCheckedRoleName) { this.seerCheckedRoleName = seerCheckedRoleName; }
 
     public Integer getMechanicalWolfLearnedSeatNumber() { return mechanicalWolfLearnedSeatNumber; }
     public void setMechanicalWolfLearnedSeatNumber(Integer mechanicalWolfLearnedSeatNumber) { this.mechanicalWolfLearnedSeatNumber = mechanicalWolfLearnedSeatNumber; }

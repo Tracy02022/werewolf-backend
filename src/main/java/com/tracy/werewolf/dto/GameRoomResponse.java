@@ -20,12 +20,16 @@ public class GameRoomResponse {
     private String wolfKillActorPlayerId;
     private boolean witchSavedWolfKill;
     private Integer witchPoisonTargetSeatNumber;
+    private boolean witchSaveUsed;
+    private boolean witchPoisonUsed;
     private List<Integer> nightDeathSeatNumbers;
     private String nightDeathMessage;
     private boolean firstDayNightReportReleased;
     private List<Integer> hunterCanShootSeatNumbers;
     private Integer seerCheckedSeatNumber;
     private String seerCheckedTeam;
+    private String seerCheckedRole;
+    private String seerCheckedRoleName;
     private Integer mechanicalWolfLearnedSeatNumber;
     private String mechanicalWolfLearnedRole;
     private String mechanicalWolfLearnedRoleName;
@@ -48,12 +52,16 @@ public class GameRoomResponse {
         this.wolfKillActorPlayerId = room.getWolfKillActorPlayerId();
         this.witchSavedWolfKill = room.isWitchSavedWolfKill();
         this.witchPoisonTargetSeatNumber = room.getWitchPoisonTargetSeatNumber();
+        this.witchSaveUsed = room.isWitchSaveUsed();
+        this.witchPoisonUsed = room.isWitchPoisonUsed();
         this.nightDeathSeatNumbers = room.getNightDeathSeatNumbers();
         this.nightDeathMessage = room.getNightDeathMessage();
         this.firstDayNightReportReleased = room.isFirstDayNightReportReleased();
         this.hunterCanShootSeatNumbers = room.getHunterCanShootSeatNumbers();
         this.seerCheckedSeatNumber = room.getSeerCheckedSeatNumber();
         this.seerCheckedTeam = room.getSeerCheckedTeam();
+        this.seerCheckedRole = room.getSeerCheckedRole();
+        this.seerCheckedRoleName = room.getSeerCheckedRoleName();
         this.mechanicalWolfLearnedSeatNumber = room.getMechanicalWolfLearnedSeatNumber();
         this.mechanicalWolfLearnedRole = room.getMechanicalWolfLearnedRole();
         this.mechanicalWolfLearnedRoleName = room.getMechanicalWolfLearnedRoleName();
@@ -74,12 +82,16 @@ public class GameRoomResponse {
     public String getWolfKillActorPlayerId() { return wolfKillActorPlayerId; }
     public boolean isWitchSavedWolfKill() { return witchSavedWolfKill; }
     public Integer getWitchPoisonTargetSeatNumber() { return witchPoisonTargetSeatNumber; }
+    public boolean isWitchSaveUsed() { return witchSaveUsed; }
+    public boolean isWitchPoisonUsed() { return witchPoisonUsed; }
     public List<Integer> getNightDeathSeatNumbers() { return nightDeathSeatNumbers; }
     public String getNightDeathMessage() { return nightDeathMessage; }
     public boolean isFirstDayNightReportReleased() { return firstDayNightReportReleased; }
     public List<Integer> getHunterCanShootSeatNumbers() { return hunterCanShootSeatNumbers; }
     public Integer getSeerCheckedSeatNumber() { return seerCheckedSeatNumber; }
     public String getSeerCheckedTeam() { return seerCheckedTeam; }
+    public String getSeerCheckedRole() { return seerCheckedRole; }
+    public String getSeerCheckedRoleName() { return seerCheckedRoleName; }
     public Integer getMechanicalWolfLearnedSeatNumber() { return mechanicalWolfLearnedSeatNumber; }
     public String getMechanicalWolfLearnedRole() { return mechanicalWolfLearnedRole; }
     public String getMechanicalWolfLearnedRoleName() { return mechanicalWolfLearnedRoleName; }

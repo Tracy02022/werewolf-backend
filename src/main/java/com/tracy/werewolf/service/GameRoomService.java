@@ -199,16 +199,31 @@ public class GameRoomService {
             throw new IllegalStateException("Only alive witch can act now");
         }
 
-        if (useSave && room.getWolfKillTargetSeatNumber() != null) {
+        if (useSave && poisonTargetSeatNumber != null) {
+            throw new IllegalStateException("女巫同一晚不能同时使用解药和毒药");
+        }
+
+        if (useSave) {
+            if (room.isWitchSaveUsed()) {
+                throw new IllegalStateException("解药已经使用过，不能再次使用");
+            }
+            if (room.getWolfKillTargetSeatNumber() == null) {
+                throw new IllegalStateException("今晚没有刀口，不能使用解药");
+            }
             if (witch.getSeatNumber() == room.getWolfKillTargetSeatNumber()) {
                 throw new IllegalStateException("女巫中刀不能自救");
             }
             room.setWitchSavedWolfKill(true);
+            room.setWitchSaveUsed(true);
         }
 
         if (poisonTargetSeatNumber != null) {
+            if (room.isWitchPoisonUsed()) {
+                throw new IllegalStateException("毒药已经使用过，不能再次使用");
+            }
             Player poisonTarget = findAlivePlayerBySeat(room, poisonTargetSeatNumber);
             room.setWitchPoisonTargetSeatNumber(poisonTarget.getSeatNumber());
+            room.setWitchPoisonUsed(true);
         }
 
         advanceToNextNightAction(room);
@@ -235,6 +250,8 @@ public class GameRoomService {
         String result = targetRole.getTeam() == RoleTeam.WOLF ? "狼人阵营" : "好人阵营";
         room.setSeerCheckedSeatNumber(target.getSeatNumber());
         room.setSeerCheckedTeam(result);
+        room.setSeerCheckedRole(target.getRole());
+        room.setSeerCheckedRoleName(targetRole.getName());
         advanceToNextNightAction(room);
         return sortPlayers(room);
     }
@@ -300,6 +317,8 @@ public class GameRoomService {
         room.setHunterCanShootSeatNumbers(new ArrayList<>());
         room.setSeerCheckedSeatNumber(null);
         room.setSeerCheckedTeam(null);
+        room.setSeerCheckedRole(null);
+        room.setSeerCheckedRoleName(null);
         room.setMechanicalWolfLearnedSeatNumber(null);
         room.setMechanicalWolfLearnedRole(null);
         room.setMechanicalWolfLearnedRoleName(null);
