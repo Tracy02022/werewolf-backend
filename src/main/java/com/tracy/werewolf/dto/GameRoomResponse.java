@@ -22,7 +22,10 @@ public class GameRoomResponse {
     private Integer witchPoisonTargetSeatNumber;
     private List<Integer> nightDeathSeatNumbers;
     private String nightDeathMessage;
+    private boolean firstDayNightReportReleased;
     private List<Integer> hunterCanShootSeatNumbers;
+    private Integer seerCheckedSeatNumber;
+    private String seerCheckedTeam;
     private Integer mechanicalWolfLearnedSeatNumber;
     private String mechanicalWolfLearnedRole;
     private String mechanicalWolfLearnedRoleName;
@@ -47,7 +50,10 @@ public class GameRoomResponse {
         this.witchPoisonTargetSeatNumber = room.getWitchPoisonTargetSeatNumber();
         this.nightDeathSeatNumbers = room.getNightDeathSeatNumbers();
         this.nightDeathMessage = room.getNightDeathMessage();
+        this.firstDayNightReportReleased = room.isFirstDayNightReportReleased();
         this.hunterCanShootSeatNumbers = room.getHunterCanShootSeatNumbers();
+        this.seerCheckedSeatNumber = room.getSeerCheckedSeatNumber();
+        this.seerCheckedTeam = room.getSeerCheckedTeam();
         this.mechanicalWolfLearnedSeatNumber = room.getMechanicalWolfLearnedSeatNumber();
         this.mechanicalWolfLearnedRole = room.getMechanicalWolfLearnedRole();
         this.mechanicalWolfLearnedRoleName = room.getMechanicalWolfLearnedRoleName();
@@ -70,7 +76,10 @@ public class GameRoomResponse {
     public Integer getWitchPoisonTargetSeatNumber() { return witchPoisonTargetSeatNumber; }
     public List<Integer> getNightDeathSeatNumbers() { return nightDeathSeatNumbers; }
     public String getNightDeathMessage() { return nightDeathMessage; }
+    public boolean isFirstDayNightReportReleased() { return firstDayNightReportReleased; }
     public List<Integer> getHunterCanShootSeatNumbers() { return hunterCanShootSeatNumbers; }
+    public Integer getSeerCheckedSeatNumber() { return seerCheckedSeatNumber; }
+    public String getSeerCheckedTeam() { return seerCheckedTeam; }
     public Integer getMechanicalWolfLearnedSeatNumber() { return mechanicalWolfLearnedSeatNumber; }
     public String getMechanicalWolfLearnedRole() { return mechanicalWolfLearnedRole; }
     public String getMechanicalWolfLearnedRoleName() { return mechanicalWolfLearnedRoleName; }

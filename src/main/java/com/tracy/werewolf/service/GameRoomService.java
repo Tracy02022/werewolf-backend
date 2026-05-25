@@ -130,6 +130,10 @@ public class GameRoomService {
         switch (room.getPhase()) {
             case WAITING -> throw new IllegalStateException("Game has not started");
             case NIGHT -> finishNightAndEnterDay(room);
+            case SHERIFF_ELECTION -> {
+                room.setFirstDayNightReportReleased(true);
+                room.setPhase(GamePhase.DAY_DISCUSSION);
+            }
             case DAY_DISCUSSION -> room.setPhase(GamePhase.VOTING);
             case VOTING -> {
                 if (isGameOver(room)) {
@@ -211,6 +215,30 @@ public class GameRoomService {
         return sortPlayers(room);
     }
 
+
+    public GameRoom seerAction(String roomCode, String playerId, Integer targetSeatNumber) {
+        GameRoom room = getRoom(roomCode);
+        if (room.getPhase() != GamePhase.NIGHT || room.getCurrentNightAction() != NightAction.SEER) {
+            throw new IllegalStateException("Seer action is not available now");
+        }
+
+        Player seer = findPlayer(room, playerId);
+        if (!seer.isAlive() || !("SEER".equals(seer.getRole()) || "SKY_EYE".equals(seer.getRole()) || "AWAKENED_SEER".equals(seer.getRole()) || "PSYCHIC".equals(seer.getRole()))) {
+            throw new IllegalStateException("Only alive seer can act now");
+        }
+        if (targetSeatNumber == null) {
+            throw new IllegalArgumentException("Target seat number is required");
+        }
+
+        Player target = findAlivePlayerBySeat(room, targetSeatNumber);
+        RoleInfo targetRole = roleCatalogService.getRole(target.getRole());
+        String result = targetRole.getTeam() == RoleTeam.WOLF ? "狼人阵营" : "好人阵营";
+        room.setSeerCheckedSeatNumber(target.getSeatNumber());
+        room.setSeerCheckedTeam(result);
+        advanceToNextNightAction(room);
+        return sortPlayers(room);
+    }
+
     public GameRoom mechanicalWolfLearn(String roomCode, String playerId, Integer targetSeatNumber) {
         GameRoom room = getRoom(roomCode);
         if (room.getPhase() != GamePhase.NIGHT || room.getCurrentNightAction() != NightAction.MECHANICAL_WOLF) {
@@ -266,7 +294,12 @@ public class GameRoomService {
         room.setWitchPoisonTargetSeatNumber(null);
         room.setNightDeathSeatNumbers(new ArrayList<>());
         room.setNightDeathMessage("");
+        if (room.getRound() <= 1) {
+            room.setFirstDayNightReportReleased(false);
+        }
         room.setHunterCanShootSeatNumbers(new ArrayList<>());
+        room.setSeerCheckedSeatNumber(null);
+        room.setSeerCheckedTeam(null);
         room.setMechanicalWolfLearnedSeatNumber(null);
         room.setMechanicalWolfLearnedRole(null);
         room.setMechanicalWolfLearnedRoleName(null);
@@ -286,7 +319,7 @@ public class GameRoomService {
             current = NightAction.WITCH;
         }
         if (current == NightAction.WITCH) {
-            if (hasAliveRole(room, "SEER")) {
+            if (hasAliveAnyRole(room, "SEER", "SKY_EYE", "AWAKENED_SEER", "PSYCHIC")) {
                 room.setCurrentNightAction(NightAction.SEER);
                 setNightActionTimer(room, OTHER_NIGHT_ACTION_SECONDS);
                 return;
@@ -313,7 +346,12 @@ public class GameRoomService {
 
     private void finishNightAndEnterDay(GameRoom room) {
         resolveNightDeaths(room);
-        room.setPhase(GamePhase.DAY_DISCUSSION);
+        if (room.getRound() <= 1 && !room.isFirstDayNightReportReleased()) {
+            room.setPhase(GamePhase.SHERIFF_ELECTION);
+        } else {
+            room.setFirstDayNightReportReleased(true);
+            room.setPhase(GamePhase.DAY_DISCUSSION);
+        }
         room.setCurrentNightAction(NightAction.FINISHED);
         room.setNightActionEndsAtEpochMs(0);
     }
@@ -372,6 +410,11 @@ public class GameRoomService {
 
     private boolean hasAliveRole(GameRoom room, String role) {
         return room.getPlayers().stream().anyMatch(p -> p.isAlive() && role.equals(p.getRole()));
+    }
+
+    private boolean hasAliveAnyRole(GameRoom room, String... roles) {
+        Set<String> roleSet = new HashSet<>(Arrays.asList(roles));
+        return room.getPlayers().stream().anyMatch(p -> p.isAlive() && roleSet.contains(p.getRole()));
     }
 
     private String joinSeatNumbers(List<Integer> seats) {

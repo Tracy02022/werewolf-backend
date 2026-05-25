@@ -44,6 +44,11 @@ public class GameRoomController {
         ));
     }
 
+    @PostMapping("/{roomCode}/seer-action")
+    public GameRoomResponse seerAction(@PathVariable String roomCode, @RequestBody SeerActionRequest request) {
+        return new GameRoomResponse(service.seerAction(roomCode, request.getPlayerId(), request.getTargetSeatNumber()));
+    }
+
     @PostMapping("/{roomCode}/mechanical-wolf-learn")
     public GameRoomResponse mechanicalWolfLearn(@PathVariable String roomCode, @RequestBody MechanicalWolfLearnRequest request) {
         return new GameRoomResponse(service.mechanicalWolfLearn(

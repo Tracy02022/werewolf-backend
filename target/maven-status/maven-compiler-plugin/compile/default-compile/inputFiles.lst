@@ -15,6 +15,7 @@
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/dto/PlayerActionRequest.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/dto/PlayerResponse.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/dto/RoleResponse.java
+/Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/dto/SeerActionRequest.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/dto/WitchActionRequest.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/model/Board.java
 /Users/tracyli/GitHub/werewolf-backend/src/main/java/com/tracy/werewolf/model/GamePhase.java
