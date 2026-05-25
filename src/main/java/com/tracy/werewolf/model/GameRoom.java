@@ -10,6 +10,8 @@ public class GameRoom {
     private int round = 0;
     private String hostPlayerId;
     private List<Player> players = new ArrayList<>();
+    private Integer wolfKillTargetSeatNumber;
+    private String wolfKillActorPlayerId;
 
     public String getRoomCode() { return roomCode; }
     public void setRoomCode(String roomCode) { this.roomCode = roomCode; }
@@ -29,4 +31,8 @@ public class GameRoom {
     public void setHostPlayerId(String hostPlayerId) { this.hostPlayerId = hostPlayerId; }
     public List<Player> getPlayers() { return players; }
     public void setPlayers(List<Player> players) { this.players = players; }
+    public Integer getWolfKillTargetSeatNumber() { return wolfKillTargetSeatNumber; }
+    public void setWolfKillTargetSeatNumber(Integer wolfKillTargetSeatNumber) { this.wolfKillTargetSeatNumber = wolfKillTargetSeatNumber; }
+    public String getWolfKillActorPlayerId() { return wolfKillActorPlayerId; }
+    public void setWolfKillActorPlayerId(String wolfKillActorPlayerId) { this.wolfKillActorPlayerId = wolfKillActorPlayerId; }
 }

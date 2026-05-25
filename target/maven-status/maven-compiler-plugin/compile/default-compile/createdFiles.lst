@@ -14,6 +14,7 @@ com/tracy/werewolf/service/GameRoomService$1.class
 com/tracy/werewolf/dto/RoleResponse.class
 com/tracy/werewolf/controller/GameRoomController.class
 com/tracy/werewolf/dto/CreateRoomRequest.class
+com/tracy/werewolf/dto/NightKillRequest.class
 com/tracy/werewolf/model/Board.class
 com/tracy/werewolf/model/RoleTeam.class
 com/tracy/werewolf/model/Player.class

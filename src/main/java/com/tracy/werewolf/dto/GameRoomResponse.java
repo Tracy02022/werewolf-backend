@@ -11,6 +11,8 @@ public class GameRoomResponse {
     private int round;
     private String hostPlayerId;
     private List<PlayerResponse> players;
+    private Integer wolfKillTargetSeatNumber;
+    private String wolfKillActorPlayerId;
 
     public GameRoomResponse(GameRoom room) {
         this.roomCode = room.getRoomCode();
@@ -24,6 +26,8 @@ public class GameRoomResponse {
         this.players = room.getPlayers().stream()
                 .map(p -> new PlayerResponse(p.getId(), p.getName(), p.isAlive(), p.getSeatNumber(), p.isHost()))
                 .toList();
+        this.wolfKillTargetSeatNumber = room.getWolfKillTargetSeatNumber();
+        this.wolfKillActorPlayerId = room.getWolfKillActorPlayerId();
     }
 
     public String getRoomCode() { return roomCode; }
@@ -35,4 +39,6 @@ public class GameRoomResponse {
     public int getRound() { return round; }
     public String getHostPlayerId() { return hostPlayerId; }
     public List<PlayerResponse> getPlayers() { return players; }
+    public Integer getWolfKillTargetSeatNumber() { return wolfKillTargetSeatNumber; }
+    public String getWolfKillActorPlayerId() { return wolfKillActorPlayerId; }
 }

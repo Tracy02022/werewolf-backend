@@ -1,8 +1,11 @@
 package com.tracy.werewolf.dto;
+
 import java.util.Map;
+
 public class CreateRoomRequest {
     private int playerCount;
     private String hostName;
+    private Integer seatNumber;
     private String boardId;
     private boolean customMode;
     private Map<String, Integer> customRoles;
@@ -11,6 +14,8 @@ public class CreateRoomRequest {
     public void setPlayerCount(int playerCount) { this.playerCount = playerCount; }
     public String getHostName() { return hostName; }
     public void setHostName(String hostName) { this.hostName = hostName; }
+    public Integer getSeatNumber() { return seatNumber; }
+    public void setSeatNumber(Integer seatNumber) { this.seatNumber = seatNumber; }
     public String getBoardId() { return boardId; }
     public void setBoardId(String boardId) { this.boardId = boardId; }
     public boolean isCustomMode() { return customMode; }

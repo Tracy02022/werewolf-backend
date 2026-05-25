@@ -44,16 +44,19 @@ public class GameRoomService {
             room.setCustomMode(false);
         }
 
+        int hostSeatNumber = requireSeatNumber(request.getSeatNumber());
+        validateSeatAvailable(room, hostSeatNumber, null);
+
         String hostId = UUID.randomUUID().toString();
-        Player host = new Player(hostId, request.getHostName().trim(), 1, true);
+        Player host = new Player(hostId, request.getHostName().trim(), hostSeatNumber, true);
         room.setHostPlayerId(hostId);
         room.getPlayers().add(host);
         rooms.put(room.getRoomCode(), room);
 
-        return room;
+        return sortPlayers(room);
     }
 
-    public GameRoom joinRoom(String roomCode, String playerName) {
+    public GameRoom joinRoom(String roomCode, String playerName, Integer seatNumber) {
         GameRoom room = getRoom(roomCode);
         if (room.getPhase() != GamePhase.WAITING) {
             throw new IllegalStateException("Game already started");
@@ -65,8 +68,11 @@ public class GameRoomService {
             throw new IllegalArgumentException("Player name is required");
         }
 
-        room.getPlayers().add(new Player(UUID.randomUUID().toString(), playerName.trim(), room.getPlayers().size() + 1, false));
-        return room;
+        int selectedSeatNumber = requireSeatNumber(seatNumber);
+        validateSeatAvailable(room, selectedSeatNumber, null);
+
+        room.getPlayers().add(new Player(UUID.randomUUID().toString(), playerName.trim(), selectedSeatNumber, false));
+        return sortPlayers(room);
     }
 
     public GameRoom fillBots(String roomCode) {
@@ -75,9 +81,19 @@ public class GameRoomService {
             throw new IllegalStateException("Game already started");
         }
         while (room.getPlayers().size() < room.getPlayerCount()) {
-            room.getPlayers().add(new Player(UUID.randomUUID().toString(), "Bot " + (room.getPlayers().size() + 1), room.getPlayers().size() + 1, false));
+            int seatNumber = findFirstEmptySeat(room);
+            room.getPlayers().add(new Player(UUID.randomUUID().toString(), "Bot " + seatNumber, seatNumber, false));
         }
-        return room;
+        return sortPlayers(room);
+    }
+
+    public GameRoom moveSeat(String roomCode, String playerId, Integer seatNumber) {
+        GameRoom room = getRoom(roomCode);
+        Player player = findPlayer(room, playerId);
+        int selectedSeatNumber = requireSeatNumber(seatNumber);
+        validateSeatAvailable(room, selectedSeatNumber, playerId);
+        player.setSeatNumber(selectedSeatNumber);
+        return sortPlayers(room);
     }
 
     public GameRoom startGame(String roomCode, String playerId) {
@@ -93,6 +109,8 @@ public class GameRoomService {
         assignRoles(room);
         room.setPhase(GamePhase.NIGHT);
         room.setRound(1);
+        room.setWolfKillTargetSeatNumber(null);
+        room.setWolfKillActorPlayerId(null);
         return room;
     }
 
@@ -110,11 +128,46 @@ public class GameRoomService {
                 } else {
                     room.setPhase(GamePhase.NIGHT);
                     room.setRound(room.getRound() + 1);
+                    room.setWolfKillTargetSeatNumber(null);
+                    room.setWolfKillActorPlayerId(null);
                 }
             }
             case FINISHED -> throw new IllegalStateException("Game already finished");
         }
         return room;
+    }
+
+
+    public GameRoom wolfKill(String roomCode, String playerId, Integer targetSeatNumber) {
+        GameRoom room = getRoom(roomCode);
+        if (room.getPhase() != GamePhase.NIGHT) {
+            throw new IllegalStateException("Wolf action is only available at night");
+        }
+
+        Player actor = findPlayer(room, playerId);
+        if (!actor.isAlive()) {
+            throw new IllegalStateException("Dead player cannot act");
+        }
+        if (actor.getRole() == null || !roleCatalogService.isWolfRole(actor.getRole())) {
+            throw new IllegalStateException("Only wolf team players can choose a kill target");
+        }
+        if (targetSeatNumber == null) {
+            throw new IllegalArgumentException("Target seat number is required");
+        }
+
+        Player target = room.getPlayers().stream()
+                .filter(player -> player.getSeatNumber() == targetSeatNumber)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Target seat is empty"));
+
+        if (!target.isAlive()) {
+            throw new IllegalStateException("Target player is already dead");
+        }
+
+        room.setWolfKillTargetSeatNumber(targetSeatNumber);
+        room.setWolfKillActorPlayerId(playerId);
+        target.setAlive(false);
+        return sortPlayers(room);
     }
 
     public GameRoom getRoom(String roomCode) {
@@ -145,6 +198,7 @@ public class GameRoomService {
         List<String> pool = buildRolePool(room);
         Collections.shuffle(pool);
 
+        sortPlayers(room);
         for (int i = 0; i < room.getPlayers().size(); i++) {
             room.getPlayers().get(i).setRole(pool.get(i));
         }
@@ -229,6 +283,53 @@ public class GameRoomService {
                 .count();
 
         return wolves == 0 || wolves >= others;
+    }
+
+    private Player findPlayer(GameRoom room, String playerId) {
+        return room.getPlayers().stream()
+                .filter(player -> Objects.equals(player.getId(), playerId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Player not found"));
+    }
+
+    private int requireSeatNumber(Integer seatNumber) {
+        if (seatNumber == null) {
+            throw new IllegalArgumentException("Seat number is required");
+        }
+        return seatNumber;
+    }
+
+    private void validateSeatAvailable(GameRoom room, int seatNumber, String currentPlayerId) {
+        if (seatNumber < 1 || seatNumber > room.getPlayerCount()) {
+            throw new IllegalArgumentException("Seat number must be between 1 and " + room.getPlayerCount());
+        }
+
+        boolean occupied = room.getPlayers().stream()
+                .anyMatch(player -> player.getSeatNumber() == seatNumber
+                        && !Objects.equals(player.getId(), currentPlayerId));
+
+        if (occupied) {
+            throw new IllegalArgumentException("This seat is already taken");
+        }
+    }
+
+    private int findFirstEmptySeat(GameRoom room) {
+        for (int seat = 1; seat <= room.getPlayerCount(); seat++) {
+            final int currentSeat = seat;
+            boolean occupied = room.getPlayers().stream()
+                    .anyMatch(player -> player.getSeatNumber() == currentSeat);
+            if (!occupied) {
+                return seat;
+            }
+        }
+        throw new IllegalStateException("No empty seat available");
+    }
+
+    private GameRoom sortPlayers(GameRoom room) {
+        room.setPlayers(new ArrayList<>(room.getPlayers().stream()
+                .sorted(Comparator.comparingInt(Player::getSeatNumber))
+                .toList()));
+        return room;
     }
 
     private void requireHost(GameRoom room, String playerId, String message) {

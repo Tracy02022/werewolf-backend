@@ -20,7 +20,17 @@ public class GameRoomController {
 
     @PostMapping("/{roomCode}/join")
     public GameRoomResponse joinRoom(@PathVariable String roomCode, @RequestBody JoinRoomRequest request) {
-        return new GameRoomResponse(service.joinRoom(roomCode, request.getPlayerName()));
+        return new GameRoomResponse(service.joinRoom(roomCode, request.getPlayerName(), request.getSeatNumber()));
+    }
+
+    @PostMapping("/{roomCode}/move-seat")
+    public GameRoomResponse moveSeat(@PathVariable String roomCode, @RequestBody MoveSeatRequest request) {
+        return new GameRoomResponse(service.moveSeat(roomCode, request.getPlayerId(), request.getSeatNumber()));
+    }
+
+    @PostMapping("/{roomCode}/wolf-kill")
+    public GameRoomResponse wolfKill(@PathVariable String roomCode, @RequestBody NightKillRequest request) {
+        return new GameRoomResponse(service.wolfKill(roomCode, request.getPlayerId(), request.getTargetSeatNumber()));
     }
 
     @PostMapping("/{roomCode}/fill-bots")
