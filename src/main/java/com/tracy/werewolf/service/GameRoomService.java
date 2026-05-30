@@ -162,6 +162,40 @@ public class GameRoomService {
         return sortPlayers(room);
     }
 
+    public GameRoom skipNightAction(String roomCode, String playerId) {
+        GameRoom room = getRoom(roomCode);
+        if (room.getPhase() != GamePhase.NIGHT) {
+            throw new IllegalStateException("Night action is only available at night");
+        }
+        if (room.isNightActionCompleted()) {
+            return sortPlayers(room);
+        }
+
+        Player actor = findPlayer(room, playerId);
+        if (!actor.isAlive()) {
+            throw new IllegalStateException("Dead player cannot act");
+        }
+        if (!canPlayerActInCurrentNightAction(room, actor)) {
+            throw new IllegalStateException("当前身份不能在这个夜间环节操作");
+        }
+        markNightActionCompleted(room);
+        return sortPlayers(room);
+    }
+
+    public GameRoom voteOutPlayer(String roomCode, String hostPlayerId, Integer targetSeatNumber) {
+        GameRoom room = getRoom(roomCode);
+        requireHost(room, hostPlayerId, "Only host can mark voted player");
+        if (room.getPhase() != GamePhase.VOTING && room.getPhase() != GamePhase.DAY_DISCUSSION) {
+            throw new IllegalStateException("Only day voting phase can mark a voted player");
+        }
+        if (targetSeatNumber == null) {
+            throw new IllegalArgumentException("Target seat number is required");
+        }
+        Player target = findAlivePlayerBySeat(room, targetSeatNumber);
+        target.setAlive(false);
+        return sortPlayers(room);
+    }
+
     public GameRoom guardAction(String roomCode, String playerId, Integer targetSeatNumber) {
         GameRoom room = getRoom(roomCode);
         if (room.getPhase() != GamePhase.NIGHT || room.getCurrentNightAction() != NightAction.GUARD) {
@@ -410,16 +444,17 @@ public class GameRoomService {
     }
 
     private boolean hasNightAction(GameRoom room, NightAction action) {
+        // 夜晚流程需要按板子固定播报：即使该身份玩家已经死亡，也要睁眼播报，然后 15 秒后自动跳过。
         return switch (action) {
-            case GUARD -> hasAliveAnyRole(room, "GUARD", "AWAKENED_GUARD");
-            case MECHANICAL_WOLF -> hasAliveRole(room, "MECHANICAL_WOLF") && room.getMechanicalWolfLearnedRole() == null;
-            case WOLF_KILL -> room.getPlayers().stream().anyMatch(p -> p.isAlive() && p.getRole() != null && roleCatalogService.isWolfRole(p.getRole()));
-            case WITCH -> hasAliveRole(room, "WITCH");
-            case PSYCHIC -> hasAliveRole(room, "PSYCHIC");
-            case SEER -> hasAliveAnyRole(room, "SEER", "SKY_EYE", "AWAKENED_SEER");
-            case HUNTER_CHECK -> hasAliveRole(room, "HUNTER");
-            case WHITE_GOD_CHECK -> hasAliveAnyRole(room, "IDIOT", "AWAKENED_FOOL");
-            case MIXED_BLOOD_CHECK -> hasAliveAnyRole(room, "MIXED_BLOOD", "SECRET_ADMIRER");
+            case GUARD -> hasAnyRole(room, "GUARD", "AWAKENED_GUARD");
+            case MECHANICAL_WOLF -> hasAnyRole(room, "MECHANICAL_WOLF") && room.getMechanicalWolfLearnedRole() == null;
+            case WOLF_KILL -> room.getPlayers().stream().anyMatch(p -> p.getRole() != null && roleCatalogService.isWolfRole(p.getRole()));
+            case WITCH -> hasAnyRole(room, "WITCH");
+            case PSYCHIC -> hasAnyRole(room, "PSYCHIC");
+            case SEER -> hasAnyRole(room, "SEER", "SKY_EYE", "AWAKENED_SEER");
+            case HUNTER_CHECK -> hasAnyRole(room, "HUNTER");
+            case WHITE_GOD_CHECK -> hasAnyRole(room, "IDIOT", "AWAKENED_FOOL");
+            case MIXED_BLOOD_CHECK -> hasAnyRole(room, "MIXED_BLOOD", "SECRET_ADMIRER");
             default -> false;
         };
     }
@@ -429,8 +464,18 @@ public class GameRoomService {
         room.setNightActionCompleted(false);
         room.setNightActionEndsAtEpochMs(0);
 
-        // 没有技能释放的睁眼确认环节：进入后等待 15 秒，前端/后端轮询到点自动进入下一环节。
-        if (action == NightAction.HUNTER_CHECK || action == NightAction.WHITE_GOD_CHECK || action == NightAction.MIXED_BLOOD_CHECK) {
+        if (action == NightAction.SEER || action == NightAction.PSYCHIC) {
+            room.setSeerCheckedSeatNumber(null);
+            room.setSeerCheckedTeam(null);
+            room.setSeerCheckedRole(null);
+            room.setSeerCheckedRoleName(null);
+        }
+
+        // 没有技能释放的睁眼确认环节，或对应身份已阵亡/没有可行动者：播报后等待 15 秒自动进入下一环节。
+        if (action == NightAction.HUNTER_CHECK
+                || action == NightAction.WHITE_GOD_CHECK
+                || action == NightAction.MIXED_BLOOD_CHECK
+                || !hasAliveActorForNightAction(room, action)) {
             markNightActionCompleted(room);
         }
     }
@@ -520,6 +565,37 @@ public class GameRoomService {
             }
         }
         return target.getRole();
+    }
+
+    private boolean canPlayerActInCurrentNightAction(GameRoom room, Player player) {
+        return switch (room.getCurrentNightAction()) {
+            case GUARD -> "GUARD".equals(player.getRole()) || "AWAKENED_GUARD".equals(player.getRole());
+            case MECHANICAL_WOLF -> "MECHANICAL_WOLF".equals(player.getRole());
+            case WOLF_KILL -> player.getRole() != null && roleCatalogService.isWolfRole(player.getRole());
+            case WITCH -> "WITCH".equals(player.getRole());
+            case PSYCHIC -> "PSYCHIC".equals(player.getRole());
+            case SEER -> "SEER".equals(player.getRole()) || "SKY_EYE".equals(player.getRole()) || "AWAKENED_SEER".equals(player.getRole());
+            default -> false;
+        };
+    }
+
+    private boolean hasAliveActorForNightAction(GameRoom room, NightAction action) {
+        return room.getPlayers().stream()
+                .filter(Player::isAlive)
+                .anyMatch(player -> switch (action) {
+                    case GUARD -> "GUARD".equals(player.getRole()) || "AWAKENED_GUARD".equals(player.getRole());
+                    case MECHANICAL_WOLF -> "MECHANICAL_WOLF".equals(player.getRole());
+                    case WOLF_KILL -> player.getRole() != null && roleCatalogService.isWolfRole(player.getRole());
+                    case WITCH -> "WITCH".equals(player.getRole());
+                    case PSYCHIC -> "PSYCHIC".equals(player.getRole());
+                    case SEER -> "SEER".equals(player.getRole()) || "SKY_EYE".equals(player.getRole()) || "AWAKENED_SEER".equals(player.getRole());
+                    default -> false;
+                });
+    }
+
+    private boolean hasAnyRole(GameRoom room, String... roles) {
+        Set<String> roleSet = new HashSet<>(Arrays.asList(roles));
+        return room.getPlayers().stream().anyMatch(p -> roleSet.contains(p.getRole()));
     }
 
     private boolean hasAliveRole(GameRoom room, String role) {

@@ -4,6 +4,7 @@ com/tracy/werewolf/dto/JoinRoomRequest.class
 com/tracy/werewolf/model/GameRoom.class
 com/tracy/werewolf/model/RoleInfo.class
 com/tracy/werewolf/dto/PlayerResponse.class
+com/tracy/werewolf/dto/VoteOutRequest.class
 com/tracy/werewolf/dto/SeerActionRequest.class
 com/tracy/werewolf/service/BoardService.class
 com/tracy/werewolf/controller/RoleController.class

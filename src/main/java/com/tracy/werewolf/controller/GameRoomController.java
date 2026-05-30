@@ -69,6 +69,16 @@ public class GameRoomController {
         return new GameRoomResponse(service.advanceNightAction(roomCode, request.getPlayerId()));
     }
 
+    @PostMapping("/{roomCode}/skip-night-action")
+    public GameRoomResponse skipNightAction(@PathVariable String roomCode, @RequestBody PlayerActionRequest request) {
+        return new GameRoomResponse(service.skipNightAction(roomCode, request.getPlayerId()));
+    }
+
+    @PostMapping("/{roomCode}/vote-out")
+    public GameRoomResponse voteOut(@PathVariable String roomCode, @RequestBody VoteOutRequest request) {
+        return new GameRoomResponse(service.voteOutPlayer(roomCode, request.getPlayerId(), request.getTargetSeatNumber()));
+    }
+
     @PostMapping("/{roomCode}/fill-bots")
     public GameRoomResponse fillBots(@PathVariable String roomCode) {
         return new GameRoomResponse(service.fillBots(roomCode));
