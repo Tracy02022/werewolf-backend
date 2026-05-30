@@ -27,4 +27,5 @@ com/tracy/werewolf/service/RoleCatalogService.class
 com/tracy/werewolf/dto/AdvanceNightActionRequest.class
 com/tracy/werewolf/dto/MoveSeatRequest.class
 com/tracy/werewolf/controller/RulesController.class
+com/tracy/werewolf/dto/GuardActionRequest.class
 com/tracy/werewolf/dto/GameRoomResponse.class

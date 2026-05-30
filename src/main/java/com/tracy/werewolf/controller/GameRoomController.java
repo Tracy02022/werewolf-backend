@@ -29,6 +29,12 @@ public class GameRoomController {
         return new GameRoomResponse(service.moveSeat(roomCode, request.getPlayerId(), request.getSeatNumber()));
     }
 
+
+    @PostMapping("/{roomCode}/guard-action")
+    public GameRoomResponse guardAction(@PathVariable String roomCode, @RequestBody GuardActionRequest request) {
+        return new GameRoomResponse(service.guardAction(roomCode, request.getPlayerId(), request.getTargetSeatNumber()));
+    }
+
     @PostMapping("/{roomCode}/wolf-kill")
     public GameRoomResponse wolfKill(@PathVariable String roomCode, @RequestBody NightKillRequest request) {
         return new GameRoomResponse(service.wolfKill(roomCode, request.getPlayerId(), request.getTargetSeatNumber()));

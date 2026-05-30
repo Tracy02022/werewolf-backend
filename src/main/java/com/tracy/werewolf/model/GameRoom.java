@@ -14,10 +14,12 @@ public class GameRoom {
     private List<Player> players = new ArrayList<>();
 
     private NightAction currentNightAction = NightAction.NONE;
+    // 这里不再用于给玩家显示倒计时，只作为“技能完成后等待 15 秒自动进入下一环节”的后端时间点。
     private long nightActionEndsAtEpochMs;
-    private boolean currentNightActionCompleted;
-    private long nextNightActionAtEpochMs;
+    private boolean nightActionCompleted;
 
+    private Integer guardTargetSeatNumber;
+    private Integer previousGuardTargetSeatNumber;
     private Integer wolfKillTargetSeatNumber;
     private String wolfKillActorPlayerId;
     private boolean witchSavedWolfKill;
@@ -61,10 +63,13 @@ public class GameRoom {
     public void setCurrentNightAction(NightAction currentNightAction) { this.currentNightAction = currentNightAction; }
     public long getNightActionEndsAtEpochMs() { return nightActionEndsAtEpochMs; }
     public void setNightActionEndsAtEpochMs(long nightActionEndsAtEpochMs) { this.nightActionEndsAtEpochMs = nightActionEndsAtEpochMs; }
-    public boolean isCurrentNightActionCompleted() { return currentNightActionCompleted; }
-    public void setCurrentNightActionCompleted(boolean currentNightActionCompleted) { this.currentNightActionCompleted = currentNightActionCompleted; }
-    public long getNextNightActionAtEpochMs() { return nextNightActionAtEpochMs; }
-    public void setNextNightActionAtEpochMs(long nextNightActionAtEpochMs) { this.nextNightActionAtEpochMs = nextNightActionAtEpochMs; }
+    public boolean isNightActionCompleted() { return nightActionCompleted; }
+    public void setNightActionCompleted(boolean nightActionCompleted) { this.nightActionCompleted = nightActionCompleted; }
+
+    public Integer getGuardTargetSeatNumber() { return guardTargetSeatNumber; }
+    public void setGuardTargetSeatNumber(Integer guardTargetSeatNumber) { this.guardTargetSeatNumber = guardTargetSeatNumber; }
+    public Integer getPreviousGuardTargetSeatNumber() { return previousGuardTargetSeatNumber; }
+    public void setPreviousGuardTargetSeatNumber(Integer previousGuardTargetSeatNumber) { this.previousGuardTargetSeatNumber = previousGuardTargetSeatNumber; }
 
     public Integer getWolfKillTargetSeatNumber() { return wolfKillTargetSeatNumber; }
     public void setWolfKillTargetSeatNumber(Integer wolfKillTargetSeatNumber) { this.wolfKillTargetSeatNumber = wolfKillTargetSeatNumber; }
