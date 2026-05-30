@@ -36,6 +36,10 @@ public class GameRoomResponse {
     private Integer mechanicalWolfLearnedSeatNumber;
     private String mechanicalWolfLearnedRole;
     private String mechanicalWolfLearnedRoleName;
+    private Integer mechanicalWolfSkillTargetSeatNumber;
+    private String mechanicalWolfSkillResult;
+    private boolean mechanicalWolfPoisonUsed;
+    private boolean mechanicalWolfCanJoinWolfKill;
 
     public GameRoomResponse(GameRoom room) {
         this.roomCode = room.getRoomCode();
@@ -71,6 +75,10 @@ public class GameRoomResponse {
         this.mechanicalWolfLearnedSeatNumber = room.getMechanicalWolfLearnedSeatNumber();
         this.mechanicalWolfLearnedRole = room.getMechanicalWolfLearnedRole();
         this.mechanicalWolfLearnedRoleName = room.getMechanicalWolfLearnedRoleName();
+        this.mechanicalWolfSkillTargetSeatNumber = room.getMechanicalWolfSkillTargetSeatNumber();
+        this.mechanicalWolfSkillResult = room.getMechanicalWolfSkillResult();
+        this.mechanicalWolfPoisonUsed = room.isMechanicalWolfPoisonUsed();
+        this.mechanicalWolfCanJoinWolfKill = room.isMechanicalWolfCanJoinWolfKill();
     }
 
     public String getRoomCode() { return roomCode; }
@@ -104,4 +112,8 @@ public class GameRoomResponse {
     public Integer getMechanicalWolfLearnedSeatNumber() { return mechanicalWolfLearnedSeatNumber; }
     public String getMechanicalWolfLearnedRole() { return mechanicalWolfLearnedRole; }
     public String getMechanicalWolfLearnedRoleName() { return mechanicalWolfLearnedRoleName; }
+    public Integer getMechanicalWolfSkillTargetSeatNumber() { return mechanicalWolfSkillTargetSeatNumber; }
+    public String getMechanicalWolfSkillResult() { return mechanicalWolfSkillResult; }
+    public boolean isMechanicalWolfPoisonUsed() { return mechanicalWolfPoisonUsed; }
+    public boolean isMechanicalWolfCanJoinWolfKill() { return mechanicalWolfCanJoinWolfKill; }
 }

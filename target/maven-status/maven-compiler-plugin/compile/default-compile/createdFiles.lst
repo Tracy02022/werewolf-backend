@@ -1,3 +1,4 @@
+com/tracy/werewolf/dto/MechanicalWolfSkillRequest.class
 com/tracy/werewolf/controller/GlobalExceptionHandler.class
 com/tracy/werewolf/service/GameRoomService.class
 com/tracy/werewolf/dto/JoinRoomRequest.class

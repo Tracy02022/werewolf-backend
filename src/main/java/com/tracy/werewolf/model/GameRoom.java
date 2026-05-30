@@ -39,6 +39,11 @@ public class GameRoom {
     private Integer mechanicalWolfLearnedSeatNumber;
     private String mechanicalWolfLearnedRole;
     private String mechanicalWolfLearnedRoleName;
+    private Integer mechanicalWolfSkillTargetSeatNumber;
+    private String mechanicalWolfSkillResult;
+    private boolean mechanicalWolfPoisonUsed;
+    private boolean mechanicalWolfPoisonUsedThisNight;
+    private boolean mechanicalWolfCanJoinWolfKill;
 
     public String getRoomCode() { return roomCode; }
     public void setRoomCode(String roomCode) { this.roomCode = roomCode; }
@@ -107,4 +112,14 @@ public class GameRoom {
     public void setMechanicalWolfLearnedRole(String mechanicalWolfLearnedRole) { this.mechanicalWolfLearnedRole = mechanicalWolfLearnedRole; }
     public String getMechanicalWolfLearnedRoleName() { return mechanicalWolfLearnedRoleName; }
     public void setMechanicalWolfLearnedRoleName(String mechanicalWolfLearnedRoleName) { this.mechanicalWolfLearnedRoleName = mechanicalWolfLearnedRoleName; }
+    public Integer getMechanicalWolfSkillTargetSeatNumber() { return mechanicalWolfSkillTargetSeatNumber; }
+    public void setMechanicalWolfSkillTargetSeatNumber(Integer mechanicalWolfSkillTargetSeatNumber) { this.mechanicalWolfSkillTargetSeatNumber = mechanicalWolfSkillTargetSeatNumber; }
+    public String getMechanicalWolfSkillResult() { return mechanicalWolfSkillResult; }
+    public void setMechanicalWolfSkillResult(String mechanicalWolfSkillResult) { this.mechanicalWolfSkillResult = mechanicalWolfSkillResult; }
+    public boolean isMechanicalWolfPoisonUsed() { return mechanicalWolfPoisonUsed; }
+    public void setMechanicalWolfPoisonUsed(boolean mechanicalWolfPoisonUsed) { this.mechanicalWolfPoisonUsed = mechanicalWolfPoisonUsed; }
+    public boolean isMechanicalWolfPoisonUsedThisNight() { return mechanicalWolfPoisonUsedThisNight; }
+    public void setMechanicalWolfPoisonUsedThisNight(boolean mechanicalWolfPoisonUsedThisNight) { this.mechanicalWolfPoisonUsedThisNight = mechanicalWolfPoisonUsedThisNight; }
+    public boolean isMechanicalWolfCanJoinWolfKill() { return mechanicalWolfCanJoinWolfKill; }
+    public void setMechanicalWolfCanJoinWolfKill(boolean mechanicalWolfCanJoinWolfKill) { this.mechanicalWolfCanJoinWolfKill = mechanicalWolfCanJoinWolfKill; }
 }

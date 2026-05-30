@@ -234,8 +234,8 @@ public class GameRoomService {
         if (!actor.isAlive()) {
             throw new IllegalStateException("Dead player cannot act");
         }
-        if (actor.getRole() == null || !roleCatalogService.isWolfRole(actor.getRole())) {
-            throw new IllegalStateException("Only wolf team players can choose a kill target");
+        if (!canPlayerPerformWolfKill(room, actor)) {
+            throw new IllegalStateException("Only alive wolves can choose a kill target. Mechanical wolf can join wolf kill only after learning a wolf role.");
         }
         if (targetSeatNumber == null) {
             throw new IllegalArgumentException("Target seat number is required");
@@ -321,15 +321,17 @@ public class GameRoomService {
         }
 
         Player target = findAlivePlayerBySeat(room, targetSeatNumber);
-        String effectiveRole = getEffectiveCheckedRole(target);
-        RoleInfo targetRole = roleCatalogService.getRole(effectiveRole);
 
         room.setSeerCheckedSeatNumber(target.getSeatNumber());
-        room.setSeerCheckedRole(effectiveRole);
-        room.setSeerCheckedRoleName(targetRole.getName());
         if (isPsychic) {
+            String psychicRole = getRoleSeenByPsychic(room, target);
+            RoleInfo targetRole = roleCatalogService.getRole(psychicRole);
+            room.setSeerCheckedRole(psychicRole);
+            room.setSeerCheckedRoleName(targetRole.getName());
             room.setSeerCheckedTeam("具体身份");
         } else {
+            String seerRole = getRoleSeenBySeer(room, target);
+            RoleInfo targetRole = roleCatalogService.getRole(seerRole);
             room.setSeerCheckedTeam(targetRole.getTeam() == RoleTeam.WOLF ? "狼人" : "好人");
             room.setSeerCheckedRole(null);
             room.setSeerCheckedRoleName(null);
@@ -360,6 +362,77 @@ public class GameRoomService {
         room.setMechanicalWolfLearnedSeatNumber(target.getSeatNumber());
         room.setMechanicalWolfLearnedRole(target.getRole());
         room.setMechanicalWolfLearnedRoleName(learned.getName());
+        markNightActionCompleted(room);
+        return sortPlayers(room);
+    }
+
+    public GameRoom mechanicalWolfSkill(String roomCode, String playerId, String skillType, Integer targetSeatNumber) {
+        GameRoom room = getRoom(roomCode);
+        if (room.getPhase() != GamePhase.NIGHT || room.getCurrentNightAction() != NightAction.MECHANICAL_WOLF) {
+            throw new IllegalStateException("Mechanical wolf skill is not available now");
+        }
+        if (room.isNightActionCompleted()) {
+            return sortPlayers(room);
+        }
+
+        Player actor = findPlayer(room, playerId);
+        if (!actor.isAlive() || !"MECHANICAL_WOLF".equals(actor.getRole())) {
+            throw new IllegalStateException("Only alive mechanical wolf can act now");
+        }
+        String learnedRole = room.getMechanicalWolfLearnedRole();
+        if (learnedRole == null || learnedRole.isBlank()) {
+            throw new IllegalStateException("Mechanical wolf has not learned a role yet");
+        }
+
+        String normalizedSkill = skillType == null ? "" : skillType.trim().toUpperCase();
+        if (roleCatalogService.isWolfRole(learnedRole)) {
+            room.setMechanicalWolfSkillResult("你学习的是狼人阵营身份。只有其他小狼全部出局后，才能在狼人刀人环节带刀。当前机械狼环节无需操作。");
+            markNightActionCompleted(room);
+            return sortPlayers(room);
+        }
+
+        if (("WITCH".equals(learnedRole) || "POISON".equals(normalizedSkill))) {
+            if (room.isMechanicalWolfPoisonUsed()) {
+                throw new IllegalStateException("机械狼学习到的毒药已经使用过");
+            }
+            Player target = findAlivePlayerBySeat(room, targetSeatNumber);
+            room.setMechanicalWolfSkillTargetSeatNumber(target.getSeatNumber());
+            room.setMechanicalWolfPoisonUsed(true);
+            room.setMechanicalWolfPoisonUsedThisNight(true);
+            room.setMechanicalWolfSkillResult("你使用了学习到的女巫毒药，目标是 " + target.getSeatNumber() + " 号。");
+            markNightActionCompleted(room);
+            return sortPlayers(room);
+        }
+
+        if ("GUARD".equals(learnedRole) || "AWAKENED_GUARD".equals(learnedRole) || "GUARD".equals(normalizedSkill)) {
+            Player target = findAlivePlayerBySeat(room, targetSeatNumber);
+            room.setMechanicalWolfSkillTargetSeatNumber(target.getSeatNumber());
+            room.setMechanicalWolfSkillResult("你使用了学习到的守卫护盾，守护 " + target.getSeatNumber() + " 号。");
+            markNightActionCompleted(room);
+            return sortPlayers(room);
+        }
+
+        if ("SEER".equals(learnedRole) || "SKY_EYE".equals(learnedRole) || "AWAKENED_SEER".equals(learnedRole) || "SEER".equals(normalizedSkill)) {
+            Player target = findAlivePlayerBySeat(room, targetSeatNumber);
+            String seerRole = getRoleSeenBySeer(room, target);
+            RoleInfo targetRole = roleCatalogService.getRole(seerRole);
+            room.setMechanicalWolfSkillTargetSeatNumber(target.getSeatNumber());
+            room.setMechanicalWolfSkillResult("你查验了 " + target.getSeatNumber() + " 号，结果是：" + (targetRole.getTeam() == RoleTeam.WOLF ? "狼人" : "好人") + "。");
+            markNightActionCompleted(room);
+            return sortPlayers(room);
+        }
+
+        if ("PSYCHIC".equals(learnedRole) || "PSYCHIC".equals(normalizedSkill)) {
+            Player target = findAlivePlayerBySeat(room, targetSeatNumber);
+            String psychicRole = getRoleSeenByPsychic(room, target);
+            RoleInfo targetRole = roleCatalogService.getRole(psychicRole);
+            room.setMechanicalWolfSkillTargetSeatNumber(target.getSeatNumber());
+            room.setMechanicalWolfSkillResult("你通灵了 " + target.getSeatNumber() + " 号，具体身份是：" + targetRole.getName() + "。");
+            markNightActionCompleted(room);
+            return sortPlayers(room);
+        }
+
+        room.setMechanicalWolfSkillResult("你学习到的身份当前没有主动夜间技能，本环节自动跳过。");
         markNightActionCompleted(room);
         return sortPlayers(room);
     }
@@ -405,9 +478,9 @@ public class GameRoomService {
         room.setSeerCheckedTeam(null);
         room.setSeerCheckedRole(null);
         room.setSeerCheckedRoleName(null);
-        room.setMechanicalWolfLearnedSeatNumber(null);
-        room.setMechanicalWolfLearnedRole(null);
-        room.setMechanicalWolfLearnedRoleName(null);
+        room.setMechanicalWolfSkillTargetSeatNumber(null);
+        room.setMechanicalWolfSkillResult(null);
+        room.setMechanicalWolfPoisonUsedThisNight(false);
         room.setNightActionCompleted(false);
         room.setNightActionEndsAtEpochMs(0);
         startFirstAvailableNightAction(room);
@@ -447,8 +520,8 @@ public class GameRoomService {
         // 夜晚流程需要按板子固定播报：即使该身份玩家已经死亡，也要睁眼播报，然后 15 秒后自动跳过。
         return switch (action) {
             case GUARD -> hasAnyRole(room, "GUARD", "AWAKENED_GUARD");
-            case MECHANICAL_WOLF -> hasAnyRole(room, "MECHANICAL_WOLF") && room.getMechanicalWolfLearnedRole() == null;
-            case WOLF_KILL -> room.getPlayers().stream().anyMatch(p -> p.getRole() != null && roleCatalogService.isWolfRole(p.getRole()));
+            case MECHANICAL_WOLF -> hasAnyRole(room, "MECHANICAL_WOLF");
+            case WOLF_KILL -> room.getPlayers().stream().anyMatch(p -> p.isAlive() && canPlayerPerformWolfKill(room, p));
             case WITCH -> hasAnyRole(room, "WITCH");
             case PSYCHIC -> hasAnyRole(room, "PSYCHIC");
             case SEER -> hasAnyRole(room, "SEER", "SKY_EYE", "AWAKENED_SEER");
@@ -469,6 +542,10 @@ public class GameRoomService {
             room.setSeerCheckedTeam(null);
             room.setSeerCheckedRole(null);
             room.setSeerCheckedRoleName(null);
+        }
+        if (action == NightAction.MECHANICAL_WOLF) {
+            room.setMechanicalWolfSkillTargetSeatNumber(null);
+            room.setMechanicalWolfSkillResult(null);
         }
 
         // 没有技能释放的睁眼确认环节，或对应身份已阵亡/没有可行动者：播报后等待 15 秒自动进入下一环节。
@@ -504,9 +581,11 @@ public class GameRoomService {
 
         Integer wolfTarget = room.getWolfKillTargetSeatNumber();
         Integer guardTarget = room.getGuardTargetSeatNumber();
+        Integer mechanicalGuardTarget = getMechanicalWolfGuardTarget(room);
 
         if (wolfTarget != null) {
-            boolean guarded = guardTarget != null && guardTarget.equals(wolfTarget);
+            boolean guarded = (guardTarget != null && guardTarget.equals(wolfTarget))
+                    || (mechanicalGuardTarget != null && mechanicalGuardTarget.equals(wolfTarget));
             boolean saved = room.isWitchSavedWolfKill();
 
             // 同守同救：守卫和女巫解药作用于同一刀口，目标依然死亡。
@@ -516,8 +595,14 @@ public class GameRoomService {
         }
 
         if (room.getWitchPoisonTargetSeatNumber() != null) {
-            deaths.add(room.getWitchPoisonTargetSeatNumber());
-            poisonDeaths.add(room.getWitchPoisonTargetSeatNumber());
+            if (mechanicalGuardTarget == null || !mechanicalGuardTarget.equals(room.getWitchPoisonTargetSeatNumber())) {
+                deaths.add(room.getWitchPoisonTargetSeatNumber());
+                poisonDeaths.add(room.getWitchPoisonTargetSeatNumber());
+            }
+        }
+        if (room.getMechanicalWolfSkillTargetSeatNumber() != null && room.isMechanicalWolfPoisonUsedThisNight()) {
+            deaths.add(room.getMechanicalWolfSkillTargetSeatNumber());
+            poisonDeaths.add(room.getMechanicalWolfSkillTargetSeatNumber());
         }
 
         List<Integer> actualDeaths = new ArrayList<>();
@@ -553,25 +638,40 @@ public class GameRoomService {
         }
     }
 
-    private String getEffectiveCheckedRole(Player target) {
-        if ("MECHANICAL_WOLF".equals(target.getRole())) {
-            // 当前简化实现：机械狼学习后，通灵师/预言家看到其学习到的身份。
-            // 注意：学习状态记录在房间级别；一局通常只有一张机械狼。
-            for (GameRoom room : rooms.values()) {
-                if (room.getPlayers().stream().anyMatch(p -> p.getId().equals(target.getId()))
-                        && room.getMechanicalWolfLearnedRole() != null) {
-                    return room.getMechanicalWolfLearnedRole();
-                }
-            }
+    private String getRoleSeenByPsychic(GameRoom room, Player target) {
+        // 通灵师看具体身份；如果目标是机械狼且已经学习身份，则显示机械狼学到的身份。
+        if ("MECHANICAL_WOLF".equals(target.getRole())
+                && room.getMechanicalWolfLearnedRole() != null
+                && !room.getMechanicalWolfLearnedRole().isBlank()) {
+            return room.getMechanicalWolfLearnedRole();
         }
         return target.getRole();
+    }
+
+    private String getRoleSeenBySeer(GameRoom room, Player target) {
+        // 预言家只看“好人/狼人”。机械狼若已学习身份，则按学习身份阵营给结果；未学习时按机械狼本体为狼人。
+        if ("MECHANICAL_WOLF".equals(target.getRole())
+                && room.getMechanicalWolfLearnedRole() != null
+                && !room.getMechanicalWolfLearnedRole().isBlank()) {
+            return room.getMechanicalWolfLearnedRole();
+        }
+        return target.getRole();
+    }
+
+    private Integer getMechanicalWolfGuardTarget(GameRoom room) {
+        String learnedRole = room.getMechanicalWolfLearnedRole();
+        if (("GUARD".equals(learnedRole) || "AWAKENED_GUARD".equals(learnedRole))
+                && room.getMechanicalWolfSkillTargetSeatNumber() != null) {
+            return room.getMechanicalWolfSkillTargetSeatNumber();
+        }
+        return null;
     }
 
     private boolean canPlayerActInCurrentNightAction(GameRoom room, Player player) {
         return switch (room.getCurrentNightAction()) {
             case GUARD -> "GUARD".equals(player.getRole()) || "AWAKENED_GUARD".equals(player.getRole());
             case MECHANICAL_WOLF -> "MECHANICAL_WOLF".equals(player.getRole());
-            case WOLF_KILL -> player.getRole() != null && roleCatalogService.isWolfRole(player.getRole());
+            case WOLF_KILL -> canPlayerPerformWolfKill(room, player);
             case WITCH -> "WITCH".equals(player.getRole());
             case PSYCHIC -> "PSYCHIC".equals(player.getRole());
             case SEER -> "SEER".equals(player.getRole()) || "SKY_EYE".equals(player.getRole()) || "AWAKENED_SEER".equals(player.getRole());
@@ -585,12 +685,40 @@ public class GameRoomService {
                 .anyMatch(player -> switch (action) {
                     case GUARD -> "GUARD".equals(player.getRole()) || "AWAKENED_GUARD".equals(player.getRole());
                     case MECHANICAL_WOLF -> "MECHANICAL_WOLF".equals(player.getRole());
-                    case WOLF_KILL -> player.getRole() != null && roleCatalogService.isWolfRole(player.getRole());
+                    case WOLF_KILL -> canPlayerPerformWolfKill(room, player);
                     case WITCH -> "WITCH".equals(player.getRole());
                     case PSYCHIC -> "PSYCHIC".equals(player.getRole());
                     case SEER -> "SEER".equals(player.getRole()) || "SKY_EYE".equals(player.getRole()) || "AWAKENED_SEER".equals(player.getRole());
                     default -> false;
                 });
+    }
+
+    private boolean canPlayerPerformWolfKill(GameRoom room, Player player) {
+        if (player == null || !player.isAlive() || player.getRole() == null) {
+            return false;
+        }
+
+        if ("MECHANICAL_WOLF".equals(player.getRole())) {
+            String learnedRole = room.getMechanicalWolfLearnedRole();
+            return learnedRole != null
+                    && roleCatalogService.isWolfRole(learnedRole)
+                    && areAllOtherWolvesDead(room, player.getId());
+        }
+
+        return roleCatalogService.isWolfRole(player.getRole()) && !"MECHANICAL_WOLF".equals(player.getRole());
+    }
+
+    private boolean areAllOtherWolvesDead(GameRoom room, String mechanicalWolfPlayerId) {
+        return room.getPlayers().stream()
+                .filter(Player::isAlive)
+                .filter(player -> !Objects.equals(player.getId(), mechanicalWolfPlayerId))
+                .noneMatch(player -> roleCatalogService.isWolfRole(player.getRole()) && !"MECHANICAL_WOLF".equals(player.getRole()));
+    }
+
+    private boolean canMechanicalWolfJoinWolfKill(GameRoom room) {
+        return room.getPlayers().stream()
+                .filter(player -> "MECHANICAL_WOLF".equals(player.getRole()) && player.isAlive())
+                .anyMatch(player -> canPlayerPerformWolfKill(room, player));
     }
 
     private boolean hasAnyRole(GameRoom room, String... roles) {
@@ -752,6 +880,7 @@ public class GameRoomService {
     }
 
     private GameRoom sortPlayers(GameRoom room) {
+        room.setMechanicalWolfCanJoinWolfKill(canMechanicalWolfJoinWolfKill(room));
         room.setPlayers(new ArrayList<>(room.getPlayers().stream()
                 .sorted(Comparator.comparingInt(Player::getSeatNumber))
                 .toList()));

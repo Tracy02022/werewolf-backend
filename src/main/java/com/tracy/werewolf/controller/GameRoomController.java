@@ -64,6 +64,16 @@ public class GameRoomController {
         ));
     }
 
+    @PostMapping("/{roomCode}/mechanical-wolf-skill")
+    public GameRoomResponse mechanicalWolfSkill(@PathVariable String roomCode, @RequestBody MechanicalWolfSkillRequest request) {
+        return new GameRoomResponse(service.mechanicalWolfSkill(
+                roomCode,
+                request.getPlayerId(),
+                request.getSkillType(),
+                request.getTargetSeatNumber()
+        ));
+    }
+
     @PostMapping("/{roomCode}/advance-night-action")
     public GameRoomResponse advanceNightAction(@PathVariable String roomCode, @RequestBody AdvanceNightActionRequest request) {
         return new GameRoomResponse(service.advanceNightAction(roomCode, request.getPlayerId()));
