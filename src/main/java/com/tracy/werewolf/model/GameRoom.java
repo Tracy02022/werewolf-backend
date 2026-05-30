@@ -15,6 +15,8 @@ public class GameRoom {
 
     private NightAction currentNightAction = NightAction.NONE;
     private long nightActionEndsAtEpochMs;
+    private boolean currentNightActionCompleted;
+    private long nextNightActionAtEpochMs;
 
     private Integer wolfKillTargetSeatNumber;
     private String wolfKillActorPlayerId;
@@ -59,6 +61,10 @@ public class GameRoom {
     public void setCurrentNightAction(NightAction currentNightAction) { this.currentNightAction = currentNightAction; }
     public long getNightActionEndsAtEpochMs() { return nightActionEndsAtEpochMs; }
     public void setNightActionEndsAtEpochMs(long nightActionEndsAtEpochMs) { this.nightActionEndsAtEpochMs = nightActionEndsAtEpochMs; }
+    public boolean isCurrentNightActionCompleted() { return currentNightActionCompleted; }
+    public void setCurrentNightActionCompleted(boolean currentNightActionCompleted) { this.currentNightActionCompleted = currentNightActionCompleted; }
+    public long getNextNightActionAtEpochMs() { return nextNightActionAtEpochMs; }
+    public void setNextNightActionAtEpochMs(long nextNightActionAtEpochMs) { this.nextNightActionAtEpochMs = nextNightActionAtEpochMs; }
 
     public Integer getWolfKillTargetSeatNumber() { return wolfKillTargetSeatNumber; }
     public void setWolfKillTargetSeatNumber(Integer wolfKillTargetSeatNumber) { this.wolfKillTargetSeatNumber = wolfKillTargetSeatNumber; }

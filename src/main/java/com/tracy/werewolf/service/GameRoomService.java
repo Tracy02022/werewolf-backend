@@ -10,7 +10,7 @@ import java.util.*;
 public class GameRoomService {
     private static final long FIRST_NIGHT_WOLF_SECONDS = 90;
     private static final long NORMAL_NIGHT_WOLF_SECONDS = 60;
-    private static final long OTHER_NIGHT_ACTION_SECONDS = 45;
+    private static final long AFTER_ACTION_WAIT_SECONDS = 15;
 
     private final Map<String, GameRoom> rooms = new HashMap<>();
     private final Random random = new Random();
@@ -183,7 +183,7 @@ public class GameRoomService {
         if (room.getWolfKillTargetSeatNumber() == null) {
             room.setWolfKillTargetSeatNumber(targetSeatNumber);
             room.setWolfKillActorPlayerId(playerId);
-            advanceToNextNightAction(room);
+            markCurrentNightActionCompleted(room);
         }
         return sortPlayers(room);
     }
@@ -226,7 +226,7 @@ public class GameRoomService {
             room.setWitchPoisonUsed(true);
         }
 
-        advanceToNextNightAction(room);
+        markCurrentNightActionCompleted(room);
         return sortPlayers(room);
     }
 
@@ -246,13 +246,16 @@ public class GameRoomService {
         }
 
         Player target = findAlivePlayerBySeat(room, targetSeatNumber);
-        RoleInfo targetRole = roleCatalogService.getRole(target.getRole());
-        String result = targetRole.getTeam() == RoleTeam.WOLF ? "狼人阵营" : "好人阵营";
+        RoleInfo effectiveTargetRole = getEffectiveRoleForCheck(room, target);
+        boolean psychicCheck = "PSYCHIC".equals(seer.getRole());
+        String result = psychicCheck
+                ? effectiveTargetRole.getName()
+                : (effectiveTargetRole.getTeam() == RoleTeam.WOLF ? "狼人" : "好人");
         room.setSeerCheckedSeatNumber(target.getSeatNumber());
         room.setSeerCheckedTeam(result);
-        room.setSeerCheckedRole(target.getRole());
-        room.setSeerCheckedRoleName(targetRole.getName());
-        advanceToNextNightAction(room);
+        room.setSeerCheckedRole(effectiveTargetRole.getId());
+        room.setSeerCheckedRoleName(result);
+        markCurrentNightActionCompleted(room);
         return sortPlayers(room);
     }
 
@@ -275,7 +278,7 @@ public class GameRoomService {
         room.setMechanicalWolfLearnedSeatNumber(target.getSeatNumber());
         room.setMechanicalWolfLearnedRole(target.getRole());
         room.setMechanicalWolfLearnedRoleName(learned.getName());
-        advanceToNextNightAction(room);
+        markCurrentNightActionCompleted(room);
         return sortPlayers(room);
     }
 
@@ -322,6 +325,8 @@ public class GameRoomService {
         room.setMechanicalWolfLearnedSeatNumber(null);
         room.setMechanicalWolfLearnedRole(null);
         room.setMechanicalWolfLearnedRoleName(null);
+        room.setCurrentNightActionCompleted(false);
+        room.setNextNightActionAtEpochMs(0);
         room.setCurrentNightAction(NightAction.WOLF_KILL);
         long seconds = room.getRound() <= 1 ? FIRST_NIGHT_WOLF_SECONDS : NORMAL_NIGHT_WOLF_SECONDS;
         setNightActionTimer(room, seconds);
@@ -331,32 +336,29 @@ public class GameRoomService {
         NightAction current = room.getCurrentNightAction();
         if (current == NightAction.WOLF_KILL) {
             if (hasAliveRole(room, "WITCH")) {
-                room.setCurrentNightAction(NightAction.WITCH);
-                setNightActionTimer(room, OTHER_NIGHT_ACTION_SECONDS);
+                setNightAction(room, NightAction.WITCH, false, 0);
                 return;
             }
             current = NightAction.WITCH;
         }
         if (current == NightAction.WITCH) {
             if (hasAliveAnyRole(room, "SEER", "SKY_EYE", "AWAKENED_SEER", "PSYCHIC")) {
-                room.setCurrentNightAction(NightAction.SEER);
-                setNightActionTimer(room, OTHER_NIGHT_ACTION_SECONDS);
+                setNightAction(room, NightAction.SEER, false, 0);
                 return;
             }
             current = NightAction.SEER;
         }
         if (current == NightAction.SEER) {
             if (hasAliveRole(room, "MECHANICAL_WOLF")) {
-                room.setCurrentNightAction(NightAction.MECHANICAL_WOLF);
-                setNightActionTimer(room, OTHER_NIGHT_ACTION_SECONDS);
+                setNightAction(room, NightAction.MECHANICAL_WOLF, false, 0);
                 return;
             }
             current = NightAction.MECHANICAL_WOLF;
         }
         if (current == NightAction.MECHANICAL_WOLF) {
             if (hasAliveRole(room, "HUNTER")) {
-                room.setCurrentNightAction(NightAction.HUNTER_CHECK);
-                setNightActionTimer(room, 20);
+                setNightAction(room, NightAction.HUNTER_CHECK, false, 0);
+                markCurrentNightActionCompleted(room);
                 return;
             }
         }
@@ -372,7 +374,9 @@ public class GameRoomService {
             room.setPhase(GamePhase.DAY_DISCUSSION);
         }
         room.setCurrentNightAction(NightAction.FINISHED);
+        room.setCurrentNightActionCompleted(false);
         room.setNightActionEndsAtEpochMs(0);
+        room.setNextNightActionAtEpochMs(0);
     }
 
     private void resolveNightDeaths(GameRoom room) {
@@ -412,15 +416,64 @@ public class GameRoomService {
     }
 
     private void autoAdvanceExpiredNightActions(GameRoom room) {
-        // 后端兜底自动推进夜间流程：只要前端轮询 getRoom，计时到点就自动进入下一夜间操作。
-        // 这样不依赖法官手机/浏览器的 setInterval 是否还在运行。
+        // 狼人阶段保留 90/60 秒兜底倒计时；其他神职不倒计时，等玩家操作。
+        // 任一夜间动作完成后，统一等待 15 秒，再自动进入下一位玩家/角色。
         while (room.getPhase() == GamePhase.NIGHT
                 && room.getCurrentNightAction() != NightAction.NONE
-                && room.getCurrentNightAction() != NightAction.FINISHED
-                && room.getNightActionEndsAtEpochMs() > 0
-                && System.currentTimeMillis() >= room.getNightActionEndsAtEpochMs()) {
-            advanceToNextNightAction(room);
+                && room.getCurrentNightAction() != NightAction.FINISHED) {
+            long now = System.currentTimeMillis();
+
+            if (room.isCurrentNightActionCompleted()
+                    && room.getNextNightActionAtEpochMs() > 0
+                    && now >= room.getNextNightActionAtEpochMs()) {
+                advanceToNextNightAction(room);
+                continue;
+            }
+
+            if (!room.isCurrentNightActionCompleted()
+                    && room.getCurrentNightAction() == NightAction.WOLF_KILL
+                    && room.getNightActionEndsAtEpochMs() > 0
+                    && now >= room.getNightActionEndsAtEpochMs()) {
+                advanceToNextNightAction(room);
+                continue;
+            }
+
+            break;
         }
+    }
+
+    private void setNightAction(GameRoom room, NightAction action, boolean withTimer, long seconds) {
+        room.setCurrentNightAction(action);
+        room.setCurrentNightActionCompleted(false);
+        room.setNextNightActionAtEpochMs(0);
+        if (withTimer && seconds > 0) {
+            setNightActionTimer(room, seconds);
+        } else {
+            room.setNightActionEndsAtEpochMs(0);
+        }
+    }
+
+    private void markCurrentNightActionCompleted(GameRoom room) {
+        room.setCurrentNightActionCompleted(true);
+        room.setNightActionEndsAtEpochMs(0);
+        room.setNextNightActionAtEpochMs(System.currentTimeMillis() + AFTER_ACTION_WAIT_SECONDS * 1000);
+    }
+
+    private RoleInfo getEffectiveRoleForCheck(GameRoom room, Player target) {
+        String role = target.getRole();
+        if ("MECHANICAL_WOLF".equals(role)
+                && room.getMechanicalWolfLearnedRole() != null
+                && !room.getMechanicalWolfLearnedRole().isBlank()) {
+            role = room.getMechanicalWolfLearnedRole();
+        }
+        return roleCatalogService.getRole(role);
+    }
+
+    private String getSeerDisplayName(Player seer, Player target, RoleInfo effectiveTargetRole) {
+        if ("PSYCHIC".equals(seer.getRole())) {
+            return effectiveTargetRole.getName();
+        }
+        return effectiveTargetRole.getTeam() == RoleTeam.WOLF ? "狼人" : "好人";
     }
 
     private void setNightActionTimer(GameRoom room, long seconds) {

@@ -16,6 +16,8 @@ public class GameRoomResponse {
 
     private NightAction currentNightAction;
     private long nightActionEndsAtEpochMs;
+    private boolean currentNightActionCompleted;
+    private long nextNightActionAtEpochMs;
     private Integer wolfKillTargetSeatNumber;
     private String wolfKillActorPlayerId;
     private boolean witchSavedWolfKill;
@@ -48,6 +50,8 @@ public class GameRoomResponse {
                 .toList();
         this.currentNightAction = room.getCurrentNightAction();
         this.nightActionEndsAtEpochMs = room.getNightActionEndsAtEpochMs();
+        this.currentNightActionCompleted = room.isCurrentNightActionCompleted();
+        this.nextNightActionAtEpochMs = room.getNextNightActionAtEpochMs();
         this.wolfKillTargetSeatNumber = room.getWolfKillTargetSeatNumber();
         this.wolfKillActorPlayerId = room.getWolfKillActorPlayerId();
         this.witchSavedWolfKill = room.isWitchSavedWolfKill();
@@ -78,6 +82,8 @@ public class GameRoomResponse {
     public List<PlayerResponse> getPlayers() { return players; }
     public NightAction getCurrentNightAction() { return currentNightAction; }
     public long getNightActionEndsAtEpochMs() { return nightActionEndsAtEpochMs; }
+    public boolean isCurrentNightActionCompleted() { return currentNightActionCompleted; }
+    public long getNextNightActionAtEpochMs() { return nextNightActionAtEpochMs; }
     public Integer getWolfKillTargetSeatNumber() { return wolfKillTargetSeatNumber; }
     public String getWolfKillActorPlayerId() { return wolfKillActorPlayerId; }
     public boolean isWitchSavedWolfKill() { return witchSavedWolfKill; }
